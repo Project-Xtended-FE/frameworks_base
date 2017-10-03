@@ -186,6 +186,8 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
 
     private View mLeftLogo;
 
+    private View mBatteryBar;
+
     private final OngoingCallListener mOngoingCallListener = new OngoingCallListener() {
         @Override
         public void onOngoingCallStateChanged(boolean animate) {
@@ -415,6 +417,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
         mStatusBarIconController.addIconGroup(mDarkIconManager);
         mEndSideContent = mStatusBar.findViewById(R.id.status_bar_end_side_content);
         mEndSideAlphaController = new MultiSourceMinAlphaController(mEndSideContent);
+        mBatteryBar = mStatusBar.findViewById(R.id.battery_bar);
         mPrimaryOngoingActivityChip = mStatusBar.findViewById(R.id.ongoing_activity_chip_primary);
         mSecondaryOngoingActivityChip =
                 mStatusBar.findViewById(R.id.ongoing_activity_chip_secondary);
@@ -886,6 +889,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
     }
 
     private void hideEndSideContent(boolean animate) {
+        animateHide(mBatteryBar, animate);
         StatusBarRootModernization.assertInLegacyMode();
         if (!animate || !mAnimationsEnabled) {
             mEndSideAlphaController.setAlpha(/*alpha*/ 0f, SOURCE_OTHER);
@@ -896,6 +900,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
     }
 
     private void showEndSideContent(boolean animate) {
+        animateShow(mBatteryBar, animate);
         StatusBarRootModernization.assertInLegacyMode();
         if (!animate || !mAnimationsEnabled) {
             mEndSideAlphaController.setAlpha(1f, SOURCE_OTHER);
