@@ -7345,6 +7345,12 @@ public final class Settings {
         public static final String MUSIC_VOLUME_PANEL_DIALOG = "music_volume_panel_dialog";
 
         /**
+         * Double tap on lockscreen to sleep
+         * @hide
+         */
+        public static final String DOUBLE_TAP_SLEEP_LOCKSCREEN = "double_tap_sleep_lockscreen";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
