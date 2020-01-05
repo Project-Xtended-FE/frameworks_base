@@ -6001,5 +6001,8 @@
   <java-symbol type="string" name="config_fingerprintFrrTargetComponent" />
   <java-symbol type="string" name="fingerprint_frr_notification_title" />
   <java-symbol type="string" name="fingerprint_frr_notification_msg" />
-
+  
+  <!-- Light / Regular style fonts -->
+  <java-symbol type="string" name="config_lightFontFamily" />
+  <java-symbol type="string" name="config_regularFontFamily" />
 </resources>
