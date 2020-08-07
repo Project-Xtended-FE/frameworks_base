@@ -39,7 +39,8 @@ import static com.android.settingslib.flags.Flags.audioSharingDeveloperOption;
 import static com.android.settingslib.flags.Flags.volumeDialogAudioSharingFix;
 import static com.android.systemui.volume.Events.DISMISS_REASON_POSTURE_CHANGED;
 import static com.android.systemui.volume.Events.DISMISS_REASON_SETTINGS_CLICKED;
-
+import com.android.systemui.media.NotificationMediaManager;
+import com.android.systemui.nad.SparkMusic;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
@@ -196,6 +197,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             "system:" + "VOLUME_TEXTVIEW";
     public static final String VOLUME_TEXTVIEW_STYLE =
             "system:" + "VOLUME_TEXTVIEW_STYLE";
+
+    private SparkMusic mMusicText;
+    private NotificationMediaManager mMediaManager;
 
     private static final long USER_ATTEMPT_GRACE_PERIOD = 1000;
     private static final int UPDATE_ANIMATION_DURATION = 80;
@@ -425,7 +429,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             MSDLPlayer msdlPlayer,
             com.android.systemui.util.time.SystemClock systemClock,
             VolumeDialogInteractor interactor,
-            FeatureFlags featureFlags) {
+            FeatureFlags featureFlags,
+            NotificationMediaManager mediaManager) {
         mFeatureFlags = featureFlags;
         mContext =
                 new ContextThemeWrapper(context, R.style.volume_dialog_theme);
@@ -496,6 +501,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     false, volumePanelOnLeftObserver);
             volumePanelOnLeftObserver.onChange(true);
             mTunerService.addTunable(mTunable, VOLUME_TEXTVIEW, VOLUME_TEXTVIEW_STYLE);
+            mMediaManager = mediaManager;
         }
         mThemeUtils = new ThemeUtils(mContext);
 
@@ -742,10 +748,13 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         mWindow.setAttributes(lp);
         mWindow.setLayout(WRAP_CONTENT, WRAP_CONTENT);
         mDialog.setContentView(R.layout.volume_dialog_legacy);
+        mMusicText = mDialog.findViewById(R.id.music_main);
+        mMusicText.initDependencies(mMediaManager, mContext);
         mDialogView = mDialog.findViewById(R.id.volume_dialog);
         mDialogView.setAlpha(0);
         mDialogView.setLayoutDirection(
                 mVolumePanelOnLeft ? LAYOUT_DIRECTION_LTR : LAYOUT_DIRECTION_RTL);
+        mMusicText.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mDialog.setCanceledOnTouchOutside(true);
         mDialog.setOnShowListener(dialog -> {
             mDialogView.getViewTreeObserver().addOnComputeInternalInsetsListener(this);
@@ -769,8 +778,19 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                         }
                     })
                     .start();
+            if (!isLandscape()) {
+            mMusicText.setTranslationX(getMediaTranslation() * mMusicText.getWidth() / 2.0f);
+            }
+            mMusicText.setAlpha(0);
+            mMusicText.animate()
+                    .alpha(1)
+                    .translationX(0)
+                    .setDuration(mDialogShowAnimationDurationMs)
+                    .setListener(getJankListener(mMusicText, TYPE_SHOW, DIALOG_TIMEOUT_MILLIS))
+                    .setInterpolator(new SystemUIInterpolators.LogDecelerateInterpolator())
+                    .start();
+            mMusicText.update();
         });
-
         mDialog.setOnDismissListener(dialogInterface ->
                 mDialogView
                         .getViewTreeObserver()
@@ -971,6 +991,10 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         return (mWindowGravity & Gravity.LEFT) == Gravity.LEFT;
     }
 
+    private float getMediaTranslation() { 
+        return (isWindowGravityLeft() ? -1 : 1);
+    }
+
     private void initDimens() {
         mDialogWidth = mContext.getResources().getDimensionPixelSize(
                 R.dimen.volume_dialog_panel_width);
@@ -1073,6 +1097,10 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private void addRow(int stream, int iconRes, int iconMuteRes, boolean important,
             boolean defaultStream) {
         addRow(stream, iconRes, iconMuteRes, important, defaultStream, false);
+    }
+
+    public void initText (NotificationMediaManager mediaManager) {
+        mMediaManager = mediaManager;
     }
 
     private void addRow(int stream, int iconRes, int iconMuteRes, boolean important,
@@ -2137,6 +2165,12 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         }
         mDialogView.setTranslationX(0);
         mDialogView.setAlpha(1);
+        mMusicText.setTranslationX(0);
+        mMusicText.setAlpha(1);
+        ViewPropertyAnimator musicAnimator = mMusicText.animate()
+                .alpha(0)
+                .setDuration(mDialogHideAnimationDurationMs)
+                .setInterpolator(new SystemUIInterpolators.LogAccelerateInterpolator());
         ViewPropertyAnimator animator = mDialogView.animate()
                 .alpha(0)
                 .setDuration(mDialogHideAnimationDurationMs)
@@ -2160,12 +2194,19 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     hideRingerDrawer();
                     mController.notifyVisible(false);
                 }, 50));
+
         if (!shouldSlideInVolumeTray()) {
             animator.translationX(
                     (isWindowGravityLeft() ? -1 : 1) * mDialogView.getWidth() / 2.0f);
         }
 
+        if (!isLandscape()) {
+            musicAnimator.translationX(getMediaTranslation() * mMusicText.getWidth() / 2.0f);
+        }
+
         animator.setListener(getJankListener(getDialogView(), TYPE_DISMISS,
+                mDialogHideAnimationDurationMs)).start();
+        musicAnimator.setListener(getJankListener(mMusicText, TYPE_DISMISS,
                 mDialogHideAnimationDurationMs)).start();
 
         checkODICaptionsTooltip(true);
