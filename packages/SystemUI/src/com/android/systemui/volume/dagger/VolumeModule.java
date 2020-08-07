@@ -31,6 +31,7 @@ import com.android.systemui.plugins.VolumeDialog;
 import com.android.systemui.plugins.VolumeDialogController;
 import com.android.systemui.statusbar.VibratorHelper;
 import com.android.systemui.statusbar.policy.AccessibilityManagerWrapper;
+import com.android.systemui.media.NotificationMediaManager;
 import com.android.systemui.statusbar.policy.ConfigurationController;
 import com.android.systemui.statusbar.policy.DevicePostureController;
 import com.android.systemui.statusbar.policy.DeviceProvisionedController;
@@ -131,7 +132,8 @@ public interface VolumeModule {
             MSDLPlayer msdlPlayer,
             SystemClock systemClock,
             VolumeDialogInteractor interactor,
-            FeatureFlags featureFlags) {
+            FeatureFlags featureFlags,
+            NotificationMediaManager mediaManager) {
         if (Flags.volumeRedesign()) {
             return volumeDialogProvider.get();
         } else {
@@ -156,10 +158,12 @@ public interface VolumeModule {
                     msdlPlayer,
                     systemClock,
                     interactor,
-                    featureFlags);
+                    featureFlags,
+                    mediaManager);
             impl.setStreamImportant(AudioManager.STREAM_SYSTEM, false);
             impl.setAutomute(true);
             impl.setSilentMode(false);
+            impl.initText(mediaManager);
             return impl;
         }
     }
