@@ -7108,6 +7108,11 @@ public final class Settings {
          * @hide
          */
         public static final String FP_ERROR_VIBRATE = "fp_error_vibrate";
+
+        /**
+         * @hide
+         */
+        public static final String RECENTS_LOCKED_TASKS = "recents_locked_tasks";
          
 	/**
 	 * Whether to enable the ripple animation on fingerprint unlock
