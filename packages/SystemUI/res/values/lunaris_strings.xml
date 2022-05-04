@@ -138,4 +138,7 @@
     <string name="vpn_tethering_label">VPN tethering</string>
     <string name="vpn_tethering_changed_off">VPN tethering turned off.</string>
     <string name="vpn_tethering_changed_on">VPN tethering turned on.</string>
+
+    <!-- Autobrightness tile -->
+    <string name="quick_settings_autobrightness_label">Auto brightness</string>
 </resources>
