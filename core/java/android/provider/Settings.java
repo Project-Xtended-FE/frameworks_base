@@ -14586,6 +14586,12 @@ public final class Settings {
         public static final String STYLUS_POINTER_ICON_ENABLED = "stylus_pointer_icon_enabled";
 
         /**
+         * Whether to always show the time on media controls
+         * @hide
+         */
+        public static final String MEDIA_CONTROLS_ALWAYS_SHOW_TIME = "media_controls_always_show_time";
+
+        /**
          * Toggle for whether to redact OTP notification while connected to wifi. Defaults to
          * false/0.
          * @hide

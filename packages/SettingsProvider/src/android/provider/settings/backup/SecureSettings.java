@@ -312,5 +312,6 @@ public class SecureSettings {
         Settings.Secure.EXTRA_DIM_AUTO_TIME,
         Settings.Secure.QS_SHOW_DATA_USAGE,
         Settings.Secure.QS_DATA_USAGE_CYCLE_TYPE,
+        Settings.Secure.MEDIA_CONTROLS_ALWAYS_SHOW_TIME,
     };
 }
