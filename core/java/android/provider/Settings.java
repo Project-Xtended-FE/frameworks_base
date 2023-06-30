@@ -7113,6 +7113,12 @@ public final class Settings {
          * @hide
          */
         public static final String RECENTS_LOCKED_TASKS = "recents_locked_tasks";
+
+        /**
+         * Haptic feedback on brightness slider
+         * @hide
+         */
+        public static final String QS_BRIGHTNESS_SLIDER_HAPTIC = "qs_brightness_slider_haptic";
          
 	/**
 	 * Whether to enable the ripple animation on fingerprint unlock
