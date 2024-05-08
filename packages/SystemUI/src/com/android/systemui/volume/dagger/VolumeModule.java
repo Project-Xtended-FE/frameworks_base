@@ -25,6 +25,7 @@ import com.android.internal.jank.InteractionJankMonitor;
 import com.android.systemui.CoreStartable;
 import com.android.systemui.Flags;
 import com.android.systemui.dump.DumpManager;
+import com.android.systemui.flags.FeatureFlags;
 import com.android.systemui.media.dialog.MediaOutputDialogManager;
 import com.android.systemui.plugins.VolumeDialog;
 import com.android.systemui.plugins.VolumeDialogController;
@@ -118,6 +119,7 @@ public interface VolumeModule {
             DeviceProvisionedController deviceProvisionedController,
             ConfigurationController configurationController,
             MediaOutputDialogManager mediaOutputDialogManager,
+            TunerService tunerService,
             InteractionJankMonitor interactionJankMonitor,
             VolumePanelNavigationInteractor volumePanelNavigationInteractor,
             VolumeNavigator volumeNavigator,
@@ -140,6 +142,7 @@ public interface VolumeModule {
                     deviceProvisionedController,
                     configurationController,
                     mediaOutputDialogManager,
+                    tunerService,
                     interactionJankMonitor,
                     volumePanelNavigationInteractor,
                     volumeNavigator,
