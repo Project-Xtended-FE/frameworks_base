@@ -137,6 +137,7 @@ import com.android.systemui.Prefs;
 import com.android.systemui.dump.DumpManager;
 import com.android.systemui.haptics.slider.HapticSlider;
 import com.android.systemui.haptics.slider.HapticSliderPlugin;
+import com.android.systemui.flags.FeatureFlags;
 import com.android.systemui.haptics.slider.HapticSliderViewBinder;
 import com.android.systemui.haptics.slider.SeekableSliderTrackerConfig;
 import com.android.systemui.haptics.slider.SliderHapticFeedbackConfig;
@@ -387,6 +388,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private final DevicePostureController mDevicePostureController;
     private @DevicePostureController.DevicePostureInt int mDevicePosture;
     private int mOrientation;
+    private final FeatureFlags mFeatureFlags;
     private final Lazy<SecureSettings> mSecureSettings;
     private int mDialogTimeoutMillis = DIALOG_TIMEOUT_MILLIS;
     private final VibratorHelper mVibratorHelper;
@@ -400,6 +402,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     private ThemeUtils mThemeUtils;
 
+    private boolean mShowMediaButton = true;
+
     public VolumeDialogImpl(
             Context context,
             VolumeDialogController volumeDialogController,
@@ -407,8 +411,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             DeviceProvisionedController deviceProvisionedController,
             ConfigurationController configurationController,
             MediaOutputDialogManager mediaOutputDialogManager,
-            InteractionJankMonitor interactionJankMonitor,
             TunerService tunerService,
+            InteractionJankMonitor interactionJankMonitor,
             VolumePanelNavigationInteractor volumePanelNavigationInteractor,
             VolumeNavigator volumeNavigator,
             boolean shouldListenForJank,
@@ -513,6 +517,18 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 Settings.System.getUriFor(Settings.System.SHOW_APP_VOLUME),
                 false, settingsObserver);
         settingsObserver.onChange(true);
+
+        ContentObserver volumeMediaButtonObserver = new ContentObserver(null) {
+            @Override
+            public void onChange(boolean selfChange) {
+                mShowMediaButton = mSecureSettings.get().getInt(
+                        "volume_show_media_button", 1) != 0;
+            }
+        };
+        mContext.getContentResolver().registerContentObserver(
+                Settings.Secure.getUriFor("volume_show_media_button"),
+                false, volumeMediaButtonObserver);
+        volumeMediaButtonObserver.onChange(true);
 
         initDimens();
 
@@ -1641,7 +1657,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     private boolean isMediaControllerAvailable() {
         final MediaController mediaController = getActiveLocalMediaController();
-        return mediaController != null && !TextUtils.isEmpty(mediaController.getPackageName());
+        return mediaController != null && !TextUtils.isEmpty(mediaController.getPackageName()) && mShowMediaButton;
     }
 
     private void initSettingsH(int lockTaskModeState) {
