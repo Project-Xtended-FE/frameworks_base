@@ -4232,8 +4232,6 @@
     <!-- Template that joins disabled message with the label for the voice over. [CHAR LIMIT=NONE] -->
     <string name="volume_slider_disabled_message_template"><xliff:g example="Notification" id="stream_name">%1$s</xliff:g>, <xliff:g example="Disabled because ring is muted" id="disabled_message">%2$s</xliff:g></string>
     
-    <!-- Label for notification action to delete a screen recording file [CHAR LIMIT=35] -->
-    <string name="screenrecord_delete_label">Löschen</string>
-    <!-- A toast message shown after successfully deleting a screen recording [CHAR LIMIT=NONE] -->
-    <string name="screenrecord_delete_description">Bildschirmaufnahme gelöscht</string>
+    <string name="screenrecord_delete_label">Delete</string>
+    <string name="screenrecord_delete_description">Screen recording deleted</string>
 </resources>
