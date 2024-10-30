@@ -186,6 +186,7 @@ public class AppPredictionManagerService extends
                     sessionId.getUserId(), false, ALLOW_NON_FULL, null, null);
 
             Context ctx = getContext();
+            
             if (!(ctx.checkCallingPermission(PACKAGE_USAGE_STATS) == PERMISSION_GRANTED
                     || com.android.internal.util.lunaris.PixelPropsUtils.isSystemLauncher(Binder.getCallingUid())
                     || mServiceNameResolver.isTemporary(userId)
