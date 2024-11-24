@@ -1051,4 +1051,5 @@ interface IActivityManager {
     void boostHint(String reason, long duration);
     void inputBoost(long duration);
 
+    boolean shouldForceLongScreen(in String packageName);
 }
