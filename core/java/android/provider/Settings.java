@@ -13018,13 +13018,24 @@ public final class Settings {
         @Readable
         public static final String VBOOT_KEY = "vboot_key";
 
-
         /**
          * Store vboot hash.
          * @hide
          */
         @Readable
         public static final String VBOOT_HASH = "vboot_hash";
+        
+        /**
+         * Whether to enable clipboard auto clear
+         * @hide
+         */
+        public static final String CLIPBOARD_AUTO_CLEAR_ENABLED = "clipboard_auto_clear_enabled";
+
+        /**
+         * Timeout length for clipboard auto clear
+         * @hide
+         */
+        public static final String CLIPBOARD_AUTO_CLEAR_TIMEOUT = "clipboard_auto_clear_timeout";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to
