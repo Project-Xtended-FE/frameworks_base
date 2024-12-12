@@ -5,4 +5,6 @@
 -->
 <resources>
 
+    <!-- QS styles -->
+    <dimen name="qs_corner_radius_top">28dip</dimen>
 </resources>
