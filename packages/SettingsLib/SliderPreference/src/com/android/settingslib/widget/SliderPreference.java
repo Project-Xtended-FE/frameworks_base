@@ -370,6 +370,7 @@ public class SliderPreference extends Preference {
         mSlider.setTrackActiveTintList(mTrackActiveColor);
         mSlider.setTrackInactiveTintList(mTrackInactiveColor);
         mSlider.setThumbTintList(mThumbColor);
+        mSlider.setThumbStrokeColor(mThumbColor);
         mSlider.setHaloTintList(mHaloColor);
         mSlider.setTickActiveTintList(mTrackInactiveColor);
         mSlider.setTickInactiveTintList(mTrackActiveColor);
@@ -377,7 +378,6 @@ public class SliderPreference extends Preference {
         // Set up slider size
         if (SettingsThemeHelper.isExpressiveTheme(getContext())) {
             mSlider.setTrackHeight(mTrackHeight);
-            // need to drop 1.12.0 to Android
             mSlider.setTrackInsideCornerSize(mTrackInsideCornerSize);
             mSlider.setTrackStopIndicatorSize(mTrackStopIndicatorSize);
             mSlider.setThumbWidth(mThumbWidth);
