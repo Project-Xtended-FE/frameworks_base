@@ -316,6 +316,13 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
     private FlingQsWithoutClickListener mFlingQsWithoutClickListener;
     private ExpansionHeightSetToMaxListener mExpansionHeightSetToMaxListener;
     private final QS.HeightListener mQsHeightListener = this::onHeightChanged;
+    private final QS.QqsHeightListener mQqsHeightListener = new QS.QqsHeightListener() {
+        @Override
+        public void onQqsHeightChanged() {
+            updateHeightsOnShadeLayoutChange();
+            mPanelViewControllerLazy.get().positionClockAndNotifications();
+        }
+    };
     private final Runnable mQsCollapseExpandAction = this::collapseOrExpandQs;
     private final QS.ScrollListener mQsScrollListener = this::onScroll;
 
@@ -2257,7 +2264,6 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
     /** */
     public final class QsFragmentListener implements FragmentHostManager.FragmentListener,
             TunerService.Tunable {
-        private boolean mPreviouslyVisibleMedia = false;
 
         /** */
         @Override
@@ -2269,6 +2275,9 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
             mQs.setOverscrolling(mStackScrollerOverscrolling);
             mQs.setInSplitShade(mSplitShadeEnabled);
             mQs.setIsNotificationPanelFullWidth(mIsFullWidth);
+            if (QSComposeFragment.isEnabled()) {
+                mQs.setQqsHeightListener(mQqsHeightListener);
+            }
 
             // recompute internal state when qspanel height changes
             mQs.getView().addOnLayoutChangeListener(
@@ -2284,12 +2293,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
                     setAnimateNextNotificationBounds(
                             StackStateAnimator.ANIMATION_DURATION_STANDARD, 0);
                     mNotificationStackScrollLayoutController.animateNextTopPaddingChange();
-                    if (QSComposeFragment.isEnabled() && mPreviouslyVisibleMedia != visible) {
-                        updateHeightsOnShadeLayoutChange();
-                        mPanelViewControllerLazy.get().positionClockAndNotifications();
-                    }
                 }
-                mPreviouslyVisibleMedia = visible;
             });
             mLockscreenShadeTransitionController.setQS(mQs);
             if (QSComposeFragment.isEnabled()) {
