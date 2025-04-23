@@ -16,6 +16,7 @@
 
 package com.android.systemui.qs.panels.ui.compose.infinitegrid
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -88,8 +89,13 @@ constructor(
                 }
             }
         
+        // Create bounceable view models for each tile
         val bounceables =
             remember(sizedTiles) { List(sizedTiles.size) { BounceableTileViewModel() } }
+        
+        // Create interaction sources for container bounce effect
+        val interactionSources =
+            remember(sizedTiles) { List(sizedTiles.size) { MutableInteractionSource() } }
         
         val squishiness by viewModel.squishinessViewModel.squishiness.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
@@ -120,6 +126,7 @@ constructor(
                             isLastInRow = isLastInColumn,
                         ),
                     tileHapticsViewModelFactoryProvider = tileHapticsViewModelFactoryProvider,
+                    interactionSource = interactionSources[spanIndex],
                     detailsViewModel = detailsViewModel,
                     isVisible = listening,
                 )
