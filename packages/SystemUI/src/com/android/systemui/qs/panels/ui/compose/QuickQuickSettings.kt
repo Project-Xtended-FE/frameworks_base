@@ -16,6 +16,7 @@
 
 package com.android.systemui.qs.panels.ui.compose
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -46,7 +47,12 @@ fun ContentScope.QuickQuickSettings(
     val sizedTiles = viewModel.tileViewModels
     val tiles = sizedTiles.fastMap { it.tile }
     
+    // Create bounceable view models for each tile
     val bounceables = remember(sizedTiles) { List(sizedTiles.size) { BounceableTileViewModel() } }
+    
+    // Create interaction sources for container bounce effect
+    val interactionSources =
+        remember(sizedTiles) { List(sizedTiles.size) { MutableInteractionSource() } }
     
     val squishiness by viewModel.squishinessViewModel.squishiness.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -83,6 +89,7 @@ fun ContentScope.QuickQuickSettings(
                         ),
                     tileHapticsViewModelFactoryProvider =
                         viewModel.tileHapticsViewModelFactoryProvider,
+                    interactionSource = interactionSources[spanIndex],
                     // There should be no QuickQuickSettings when the details view is enabled.
                     detailsViewModel = null,
                     isVisible = listening,
