@@ -539,6 +539,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private boolean mHasFeatureLeanback;
     private boolean mHasFeatureHdmiCec;
 
+    // Double-tap-to-doze
+    private boolean mDoubleTapToWake;
+    private boolean mDoubleTapToDoze;
+    private boolean mNativeDoubleTapToDozeAvailable;
+
     // Assigned on main thread, accessed on UI thread
     volatile VrManagerInternal mVrManagerInternal;
 
@@ -1180,6 +1185,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(LineageSettings.System.getUriFor(
                     LineageSettings.System.KEY_SHAKE_GESTURE_ACTION), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    "doze_pulse_on_double_tap_ext"), false, this,
                     UserHandle.USER_ALL);
             updateSettings();
         }
@@ -2731,6 +2739,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         mWakeOnDpadKeyPress =
                 res.getBoolean(com.android.internal.R.bool.config_wakeOnDpadKeyPress);
 
+        // Double-tap-to-doze
+        mNativeDoubleTapToDozeAvailable = !android.text.TextUtils.isEmpty(
+                mContext.getResources().getString(R.string.config_dozeDoubleTapSensorType));
+
         // Init display burn-in protection
         boolean burnInProtectionEnabled = mContext.getResources().getBoolean(
                 com.android.internal.R.bool.config_enableBurnInProtection);
@@ -3541,6 +3553,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         boolean updateRotation = false;
         boolean updateKidsModeSettings = false;
         final boolean kidsModeEnabled;
+        
+        // Double-tap-to-doze
+        mDoubleTapToWake = Settings.Secure.getIntForUser(resolver,
+                Settings.Secure.DOUBLE_TAP_TO_WAKE, 0, UserHandle.USER_CURRENT) == 1;
+        mDoubleTapToDoze = Settings.Secure.getIntForUser(resolver,
+                "doze_pulse_on_double_tap_ext", 0, UserHandle.USER_CURRENT) == 1;
+
         int mDeviceHardwareWakeKeys = mContext.getResources().getInteger(
                 org.lineageos.platform.internal.R.integer.config_deviceHardwareWakeKeys);
         synchronized (mLock) {
@@ -6364,7 +6383,17 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 notifyKeyGestureCompletedOnActionUp(event,
                         KeyGestureEvent.KEY_GESTURE_TYPE_WAKEUP);
                 result &= ~ACTION_PASS_TO_USER;
-                isWakeKey = true;
+                // Double-tap-to-doze
+                 if (mDoubleTapToWake && mDoubleTapToDoze && !mNativeDoubleTapToDozeAvailable) {
+                    isWakeKey = false;
+                    if (!down) {
+                        Intent intent = new Intent("com.android.systemui.doze.pulse");
+                        intent.setPackage("com.android.systemui");
+                        mContext.sendBroadcastAsUser(intent, new UserHandle(UserHandle.USER_CURRENT));
+                    }
+                } else {
+                    isWakeKey = true;
+                }
                 break;
             }
 
