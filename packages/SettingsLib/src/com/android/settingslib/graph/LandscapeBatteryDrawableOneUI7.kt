@@ -236,7 +236,7 @@ open class LandscapeBatteryDrawableOneUI7(private val context: Context, frameCol
     // Time value for animation
     private var animationTime = 0f
     private val animationPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { p ->
-        p.color = 0xFF34C759.toInt()  // Charging green color
+        p.color = 0xFF84ffa6.toInt()  // Charging green color
         p.alpha = 255
         p.isDither = true
         p.style = Paint.Style.FILL_AND_STROKE
@@ -421,7 +421,7 @@ open class LandscapeBatteryDrawableOneUI7(private val context: Context, frameCol
     
     private fun batteryColorForLevel(level: Int): Int {
         return when {
-            charging -> 0xFF34C759.toInt() // Keep the green color for charging state
+            charging -> 0xFF35d089.toInt() // Keep the green color for charging state
             powerSaveEnabled -> 0xFFFFCC0A.toInt() // Yellow color for power save mode
             level > Companion.CRITICAL_LEVEL -> fillColor
             level >= 0 -> 0xFFFF0000.toInt()
