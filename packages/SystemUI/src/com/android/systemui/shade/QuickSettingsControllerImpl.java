@@ -2454,4 +2454,8 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
         void onFlingQsWithoutClick(ValueAnimator animator, float qsExpansionHeight,
                 float target, float vel);
     }
+    
+    public boolean isVisible() {
+        return mVisible;
+    }
 }
