@@ -7071,6 +7071,28 @@ public final class Settings {
         public static final String EXTREME_REFRESH_RATE = "extreme_refresh_rate";
 
         /**
+         * Ramping ringer total duration in seconds
+         * @hide
+         */
+        @Readable
+        public static final String RAMPING_RINGER_DURATION = "ramping_ringer_duration";
+
+        /**
+         * Ramping ringer starting volume in decimal percentage
+         * @hide
+         */
+        @Readable
+        public static final String RAMPING_RINGER_START_VOLUME = "ramping_ringer_start_volume";
+
+        /**
+         * Whther to immediately start ramping volume
+         * instead of waiting for half of {@link RAMPING_RINGER_DURATION}
+         * @hide
+         */
+        @Readable
+        public static final String RAMPING_RINGER_NO_SILENCE = "ramping_ringer_no_silence";
+
+        /**
          * Whether to vibrate on succesful fingerprint authentication
          * @hide
          */
