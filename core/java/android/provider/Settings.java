@@ -7093,6 +7093,11 @@ public final class Settings {
         public static final String RAMPING_RINGER_NO_SILENCE = "ramping_ringer_no_silence";
 
         /**
+         * @hide
+         */
+        public static final String SCREEN_ANIMATION_ENABLED = "screen_animation_enabled";
+
+        /**
          * Whether to vibrate on succesful fingerprint authentication
          * @hide
          */
