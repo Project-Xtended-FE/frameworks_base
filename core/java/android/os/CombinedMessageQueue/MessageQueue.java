@@ -42,6 +42,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -254,6 +255,32 @@ public final class MessageQueue {
             nativeDestroy(mPtr);
             mPtr = 0;
         }
+    }
+
+    static final class EnqueueOrder implements Comparator<MessageNode> {
+        @Override
+        public int compare(MessageNode n1, MessageNode n2) {
+            return compareMessages(n1.mMessage, n2.mMessage);
+        }
+    }
+
+    private static final EnqueueOrder sEnqueueOrder = new EnqueueOrder();
+
+    static int compareMessages(@NonNull Message m1, @NonNull Message m2) {
+        // Primary queue order is by when.
+        // Messages with an earlier when should come first in the queue.
+        final long whenDiff = m1.when - m2.when;
+        if (whenDiff > 0) return 1;
+        if (whenDiff < 0) return -1;
+
+        // Secondary queue order is by insert sequence.
+        // If two messages were inserted with the same `when`, the one inserted
+        // first should come first in the queue.
+        final long insertSeqDiff = m1.insertSeq - m2.insertSeq;
+        if (insertSeqDiff > 0) return 1;
+        if (insertSeqDiff < 0) return -1;
+
+        return 0;
     }
 
     private static final class MatchDeliverableMessages extends MessageCompare {
@@ -678,13 +705,13 @@ public final class MessageQueue {
                 if (msgNode != null) {
                     Message msg = msgNode.mMessage;
                     Log.d(TAG_C, "Next found node what: " + msg.what + " when: " + msg.when
-                            + " seq: " + msgNode.mInsertSeq + "barrier: "
+                            + " seq: " + msgNode.mMessage.insertSeq + "barrier: "
                             + msgNode.isBarrier() + " now: " + SystemClock.uptimeMillis());
                 }
                 if (asyncMsgNode != null) {
                     Message msg = asyncMsgNode.mMessage;
                     Log.d(TAG_C, "Next found async node what: " + msg.what + " when: " + msg.when
-                            + " seq: " + asyncMsgNode.mInsertSeq + "barrier: "
+                            + " seq: " + asyncMsgNode.mMessage.insertSeq + "barrier: "
                             + asyncMsgNode.isBarrier() + " now: "
                             + SystemClock.uptimeMillis());
                 }
@@ -733,7 +760,7 @@ public final class MessageQueue {
                 if (found != null) {
                     Message msg = found.mMessage;
                     Log.d(TAG_C, " Will deliver node what: " + msg.what + " when: " + msg.when
-                            + " seq: " + found.mInsertSeq + " barrier: " + found.isBarrier()
+                            + " seq: " + found.mMessage.insertSeq + " barrier: " + found.isBarrier()
                             + " async: " + found.isAsync() + " now: "
                             + SystemClock.uptimeMillis());
                 } else {
@@ -742,7 +769,7 @@ public final class MessageQueue {
                 if (next != null) {
                     Message msg = next.mMessage;
                     Log.d(TAG_C, "Next node what: " + msg.what + " when: " + msg.when + " seq: "
-                            + next.mInsertSeq + " barrier: " + next.isBarrier() + " async: "
+                            + next.mMessage.insertSeq + " barrier: " + next.isBarrier() + " async: "
                             + next.isAsync()
                             + " now: " + SystemClock.uptimeMillis());
                 } else {
@@ -2152,7 +2179,7 @@ public final class MessageQueue {
         while (iterator.hasNext()) {
             MessageNode msgNode = iterator.next();
             Log.d(TAG_C, "** MessageNode what: " + msgNode.mMessage.what + " when "
-                    + msgNode.mMessage.when + " seq: " + msgNode.mInsertSeq);
+                    + msgNode.mMessage.when + " seq: " + msgNode.mMessage.insertSeq);
         }
     }
 
@@ -2391,7 +2418,7 @@ public final class MessageQueue {
 
     private MessageNode pickEarliestNode(MessageNode nodeA, MessageNode nodeB) {
         if (nodeA != null && nodeB != null) {
-            if (nodeA.compareTo(nodeB) < 0) {
+            if (compareMessages(nodeA.mMessage, nodeB.mMessage) < 0) {
                 return nodeA;
             }
             return nodeB;
@@ -2503,12 +2530,11 @@ public final class MessageQueue {
         }
     }
 
-    static final class MessageNode extends StackNode implements Comparable<MessageNode> {
+    static final class MessageNode extends StackNode {
         private final Message mMessage;
         volatile StackNode mNext;
         StateNode mBottomOfStack;
         boolean mWokeUp;
-        final long mInsertSeq;
         private static final VarHandle sRemovedFromStack;
         private volatile boolean mRemovedFromStackValue;
         static {
@@ -2525,7 +2551,7 @@ public final class MessageQueue {
         MessageNode(@NonNull Message message, long insertSeq) {
             super(STACK_NODE_MESSAGE);
             mMessage = message;
-            mInsertSeq = insertSeq;
+            message.insertSeq = insertSeq;
         }
 
         long getWhen() {
@@ -2542,17 +2568,6 @@ public final class MessageQueue {
 
         boolean isBarrier() {
             return mMessage.target == null;
-        }
-
-        @Override
-        public int compareTo(@NonNull MessageNode messageNode) {
-            Message other = messageNode.mMessage;
-
-            int compared = Long.compare(mMessage.when, other.when);
-            if (compared == 0) {
-                compared = Long.compare(mInsertSeq, messageNode.mInsertSeq);
-            }
-            return compared;
         }
     }
 
@@ -2589,9 +2604,9 @@ public final class MessageQueue {
 
     private volatile StackNode mStateValue = sStackStateParked;
     private final ConcurrentSkipListSet<MessageNode> mPriorityQueue =
-            new ConcurrentSkipListSet<MessageNode>();
+            new ConcurrentSkipListSet<MessageNode>(sEnqueueOrder);
     private final ConcurrentSkipListSet<MessageNode> mAsyncPriorityQueue =
-            new ConcurrentSkipListSet<MessageNode>();
+            new ConcurrentSkipListSet<MessageNode>(sEnqueueOrder);
 
     /*
      * This helps us ensure that messages with the same timestamp are inserted in FIFO order.
@@ -2754,7 +2769,7 @@ public final class MessageQueue {
 
         if (DEBUG) {
             Log.d(TAG_C, "Insert message what: " + msg.what + " when: " + msg.when + " seq: "
-                    + node.mInsertSeq + " barrier: " + node.isBarrier() + " async: "
+                    + node.mMessage.insertSeq + " barrier: " + node.isBarrier() + " async: "
                     + node.isAsync() + " now: " + SystemClock.uptimeMillis());
         }
 
