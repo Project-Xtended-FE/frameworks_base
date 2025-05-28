@@ -114,8 +114,15 @@ constructor(
         }
 
     /**
-     * Method that requests blur to be applied on window root view. It is applied only when other
-     * blurs are not applied.
+     * true when tracking shade motion that might lead to a shade expansion.
+     *
+     * This signal need not be implemented by all shade variants.
+     */
+    val isTrackingShadeMotion: StateFlow<Boolean> = repository.trackingShadeMotion.asStateFlow()
+
+    /**
+     * Requests blur to be applied on the window root view. It is applied only when other blurs are
+     * not applied.
      *
      * This method is present to temporarily support the blur for notification shade, ideally shade
      * should expose state that is used by this interactor to determine the blur that has to be
@@ -148,6 +155,14 @@ constructor(
 
     private fun Flow<Boolean>.or(anotherFlow: Flow<Boolean>): Flow<Boolean> =
         this.combine(anotherFlow) { a, b -> a || b }
+    
+    /**
+     * Set to true when shade motion is being tracked. This signal is used to make sure
+     * surface-flinger is ready for expensive blur during shade expansion.
+     */
+    fun setTrackingShadeMotion(tracking: Boolean) {
+        repository.trackingShadeMotion.value = tracking
+    }
 
     companion object {
         const val TAG = "WindowRootViewBlurInteractor"
