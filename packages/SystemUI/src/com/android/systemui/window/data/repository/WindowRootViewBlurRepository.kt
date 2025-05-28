@@ -22,6 +22,7 @@ import android.database.ContentObserver
 import android.os.SystemProperties
 import android.os.UserHandle
 import android.provider.Settings
+import android.util.Log
 import android.view.CrossWindowBlurListeners
 import com.android.systemui.common.coroutine.ChannelExt.trySendWithFailureLogging
 import com.android.systemui.dagger.SysUISingleton
@@ -37,6 +38,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 
 typealias BlurAppliedListener = Consumer<Int>
@@ -54,6 +56,9 @@ interface WindowRootViewBlurRepository {
     val isLockscreenTranslucentEnabled: StateFlow<Boolean>
 
     var blurAppliedListener: BlurAppliedListener?
+
+    /** true when tracking shade motion that might lead to a shade expansion. */
+    val trackingShadeMotion: MutableStateFlow<Boolean>
 
     companion object {
         /**
@@ -76,6 +81,9 @@ constructor(
     @Application private val scope: CoroutineScope,
     @Application private val context: Context
 ) : WindowRootViewBlurRepository {
+
+    override val trackingShadeMotion = MutableStateFlow(false)
+
     override val blurRequestedByShade = MutableStateFlow(0)
 
     override val isBlurOpaque = MutableStateFlow(false)
@@ -94,6 +102,7 @@ constructor(
 
                 awaitClose { crossWindowBlurListeners.removeListener(sendUpdate) }
             } // stateIn because this is backed by a binder call.
+            .onEach { Log.d(TAG, "isBlurSupported changed to $it") }
             .stateIn(scope, SharingStarted.WhileSubscribed(), false)
 
     override val isTranslucentEnabled: StateFlow<Boolean> =

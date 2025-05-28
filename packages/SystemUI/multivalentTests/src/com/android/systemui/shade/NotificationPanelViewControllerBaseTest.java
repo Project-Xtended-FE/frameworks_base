@@ -165,6 +165,7 @@ import com.android.systemui.util.time.FakeSystemClock;
 import com.android.systemui.util.time.SystemClock;
 import com.android.systemui.utils.windowmanager.WindowManagerProvider;
 import com.android.systemui.wallpapers.ui.viewmodel.WallpaperFocalAreaViewModel;
+import com.android.systemui.window.domain.interactor.WindowRootViewBlurInteractor;
 import com.android.wm.shell.animation.FlingAnimationUtils;
 
 import dagger.Lazy;
@@ -303,6 +304,8 @@ public class NotificationPanelViewControllerBaseTest extends SysuiTestCase {
     protected View.OnLayoutChangeListener mLayoutChangeListener;
     protected ShadeRepository mShadeRepository;
     protected FakeMSDLPlayer mMSDLPlayer = mKosmos.getMsdlPlayer();
+    protected WindowRootViewBlurInteractor mWindowRootViewBlurInteractor =
+            mKosmos.getWindowRootViewBlurInteractor();
 
     protected BrightnessMirrorShowingRepository mBrightnessMirrorShowingRepository =
             mKosmos.getBrightnessMirrorShowingRepository();
@@ -581,7 +584,8 @@ public class NotificationPanelViewControllerBaseTest extends SysuiTestCase {
                 mBrightnessMirrorShowingRepository,
                 new BlurConfig(0f, 0f),
                 () -> mKosmos.getFakeShadeDisplaysRepository(),
-                mContext);
+                mContext,
+                mWindowRootViewBlurInteractor);
         mNotificationPanelViewController.initDependencies(
                 mCentralSurfaces,
                 null,
