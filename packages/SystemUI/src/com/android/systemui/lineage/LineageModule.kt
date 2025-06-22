@@ -236,5 +236,20 @@ interface LineageModule {
                 category = TileCategory.CONNECTIVITY
             )
         }
+        
+        @Provides
+        @IntoMap
+        @StringKey(RefreshRateTile.TILE_SPEC)
+        fun provideRefreshRateTileConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(RefreshRateTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_refresh_rate,
+                    labelRes = R.string.refresh_rate_tile_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
     }
 }
