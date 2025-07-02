@@ -62,7 +62,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 /** Quick settings tile: VPN **/
-public class VpnTile extends QSTileImpl<BooleanState> {
+public class VpnTile extends SecureQSTile<BooleanState> {
 
     public static final String TILE_SPEC = "vpn";
 
@@ -86,7 +86,7 @@ public class VpnTile extends QSTileImpl<BooleanState> {
             KeyguardStateController keyguardStateController,
             PanelInteractor panelInteractor) {
         super(host, uiEventLogger, backgroundLooper, mainHandler, falsingManager, metricsLogger,
-                statusBarStateController, activityStarter, qsLogger);
+                statusBarStateController, activityStarter, qsLogger, keyguardStateController);
         mController = securityController;
         mKeyguard = keyguardStateController;
         mPanelInteractor = panelInteractor;
@@ -121,7 +121,10 @@ public class VpnTile extends QSTileImpl<BooleanState> {
     }
 
     @Override
-    protected void handleClick(@Nullable Expandable expandable) {
+    protected void handleClick(@Nullable Expandable expandable, boolean keyguardShowing) {
+        if (checkKeyguard(expandable, keyguardShowing)) {
+            return;
+        }
         if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
             mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
                 showConnectDialogOrDisconnect();
