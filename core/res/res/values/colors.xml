@@ -579,7 +579,7 @@
     <color name="language_picker_item_selected_stroke">#4C8DF6</color>
 
     <!-- Accent TwoTone notification color-->
-    <color name="qs_color_inactive">@color/system_neutral2_10</color>
+    <color name="qs_color_inactive">@color/system_neutral1_10</color>
 
     <!-- Color for side fps toast light theme -->
     <color name="side_fps_toast_background">#F7F9FA</color>
