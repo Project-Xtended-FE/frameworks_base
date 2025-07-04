@@ -60,7 +60,7 @@
     <color name="side_fps_button_color">#33B9DB</color>
 
     <!-- Accent TwoTone notification color-->
-    <color name="qs_color_inactive">@color/system_neutral2_800</color>
+    <color name="qs_color_inactive">@color/system_neutral1_900</color>
     
     <color name="toast_color_background">@*android:color/system_neutral1_900</color>
 </resources>
