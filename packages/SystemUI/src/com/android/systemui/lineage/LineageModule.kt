@@ -273,5 +273,290 @@ interface LineageModule {
                 category = TileCategory.CONNECTIVITY
             )
         }
+
+        @Provides
+        @IntoMap
+        @StringKey(CaffeineTile.TILE_SPEC)
+        fun provideCaffeineConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(CaffeineTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_caffeine,
+                    labelRes = R.string.quick_settings_caffeine_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(HeadsUpTile.TILE_SPEC)
+        fun provideHeadsUpConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(HeadsUpTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_heads_up,
+                    labelRes = R.string.quick_settings_heads_up_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(SyncTile.TILE_SPEC)
+        fun provideSyncConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(SyncTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_sync,
+                    labelRes = R.string.quick_settings_sync_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.CONNECTIVITY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(AmbientDisplayTile.TILE_SPEC)
+        fun provideAmbientDisplayConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(AmbientDisplayTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_ambient_display,
+                    labelRes = R.string.quick_settings_ambient_display_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(UsbTetherTile.TILE_SPEC)
+        fun provideUsbTetherConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(UsbTetherTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_usb_tether,
+                    labelRes = R.string.quick_settings_usb_tether_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(AODTile.TILE_SPEC)
+        fun provideAODConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(AODTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_aod,
+                    labelRes = R.string.quick_settings_aod_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(PowerShareTile.TILE_SPEC)
+        fun providePowerShareConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(PowerShareTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_powershare,
+                    labelRes = R.string.quick_settings_powershare_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(ReadingModeTile.TILE_SPEC)
+        fun provideReadingModeConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(ReadingModeTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_reader,
+                    labelRes = R.string.quick_settings_reading_mode
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(ProfilesTile.TILE_SPEC)
+        fun provideProfilesConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(ProfilesTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_profiles,
+                    labelRes = R.string.quick_settings_profiles_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(VpnTile.TILE_SPEC)
+        fun provideVpnConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(VpnTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_vpn,
+                    labelRes = R.string.quick_settings_vpn_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.CONNECTIVITY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(SoundTile.TILE_SPEC)
+        fun provideSoundConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(SoundTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_ringer_audible,
+                    labelRes = R.string.quick_settings_sound_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(DataSwitchTile.TILE_SPEC)
+        fun provideDataSwitchTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(DataSwitchTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_data_switch_0,
+                    labelRes = R.string.qs_data_switch_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.CONNECTIVITY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(VolumeTile.TILE_SPEC)
+        fun provideVolumeTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(VolumeTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_volume_panel,
+                    labelRes = R.string.quick_settings_volume_panel_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap  
+        @StringKey(LocaleTile.TILE_SPEC)
+        fun provideLocaleTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(LocaleTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_locale,
+                    labelRes = R.string.quick_settings_locale_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.ACCESSIBILITY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(PreferredNetworkTile.TILE_SPEC)
+        fun providePreferredNetworkTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(PreferredNetworkTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_preferred_network,
+                    labelRes = R.string.quick_settings_preferred_network_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.CONNECTIVITY
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(CompassTile.TILE_SPEC)
+        fun provideCompassTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(CompassTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_compass,
+                    labelRes = R.string.quick_settings_compass_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(ScreenshotTile.TILE_SPEC)
+        fun provideScreenshotTile(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(ScreenshotTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = com.android.internal.R.drawable.ic_screenshot,
+                    labelRes = com.android.internal.R.string.global_action_screenshot
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(CPUInfoTile.TILE_SPEC)
+        fun provideCPUInfoConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(CPUInfoTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_cpu_info,
+                    labelRes = R.string.quick_settings_cpuinfo_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.UTILITIES
+            )
+        }
+
+        @Provides
+        @IntoMap
+        @StringKey(FPSInfoTile.TILE_SPEC)
+        fun provideFPSInfoConfig(uiEventLogger: QsEventLogger): QSTileConfig {
+            return QSTileConfig(
+                tileSpec = TileSpec.create(FPSInfoTile.TILE_SPEC),
+                uiConfig = QSTileUIConfig.Resource(
+                    iconRes = R.drawable.ic_qs_fps_info,
+                    labelRes = R.string.quick_settings_fpsinfo_label
+                ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY
+            )
+        }
     }
 }
