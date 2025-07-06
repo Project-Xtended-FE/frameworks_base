@@ -2053,6 +2053,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             mWindowManager = wm;
             mWmInternal = LocalServices.getService(WindowManagerInternal.class);
             mActivityTaskManager.setWindowManager(wm);
+            com.android.server.NtServiceInjector.get(mContext).setWindowManagerService(wm);
         }
     }
 
@@ -19584,13 +19585,6 @@ public class ActivityManagerService extends IActivityManager.Stub
     @Override
     public void releaseMemory(int minAdj, int maxKillCount, boolean includeUIProcesses, boolean skipCamera) {
         mMemoryManager.releaseMemory(minAdj, maxKillCount, includeUIProcesses, skipCamera);
-    }
-
-    @Override
-    public boolean isSwipeToScreenshotGestureActive() {
-        synchronized (this) {
-            return mIsSwipeToScrenshotEnabled && SystemProperties.getBoolean("sys.android.screenshot", false);
-        }
     }
    
     @Override
