@@ -28,10 +28,10 @@ object NewQsUI {
     const val FLAG_NAME = Flags.FLAG_QS_UI_REFACTOR
     
     /** Settings key for runtime control */
-    const val SETTINGS_KEY = "qs_refactor_enabled"
+    const val SETTINGS_KEY = "qs_refactor_disabled"
     
     /** Default value when settings key is not set */
-    private const val DEFAULT_ENABLED = 1
+    private const val DEFAULT_DISABLED = 0
     
     /** A token used for dependency declaration */
     val token: FlagToken
@@ -40,7 +40,7 @@ object NewQsUI {
     /** Is the refactor enabled */
     @JvmStatic
     val isEnabled: Boolean
-        get() = Flags.qsUiRefactor() && getSettingsValue()
+        get() = Flags.qsUiRefactor() && !getSettingsValue()
     
     /**
      * Get the current settings value for QS refactor
@@ -51,12 +51,12 @@ object NewQsUI {
             val settingsValue = Settings.Secure.getInt(
                 context.contentResolver,
                 SETTINGS_KEY,
-                DEFAULT_ENABLED
+                DEFAULT_DISABLED
             )
             settingsValue == 1
         } catch (e: Exception) {
             // Fallback to default if context not available
-            DEFAULT_ENABLED == 1
+            DEFAULT_DISABLED == 1
         }
     }
     
