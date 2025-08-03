@@ -131,19 +131,6 @@
                     style="@style/InternetDialog.Network"
                     android:layout_height="72dp">
 
-                    <FrameLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="24dp"
-                        android:clickable="false"
-                        android:layout_gravity="center_vertical|start">
-                        <ImageView
-                            android:id="@+id/signal_icon"
-                            android:autoMirrored="true"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"/>
-                    </FrameLayout>
-
                     <LinearLayout
                         android:layout_weight="1"
                         android:orientation="vertical"
@@ -203,10 +190,12 @@
                     android:layout_width="match_parent"
                     android:visibility="gone"/>
 
-                <LinearLayout
+<LinearLayout
                     android:id="@+id/hotspot_layout"
                     style="@style/InternetDialog.Network"
-                    android:layout_height="72dp">
+                    android:layout_height="72dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <FrameLayout
                         android:layout_width="24dp"
@@ -226,7 +215,7 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:clickable="false"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:gravity="start|center_vertical">
                         <TextView
