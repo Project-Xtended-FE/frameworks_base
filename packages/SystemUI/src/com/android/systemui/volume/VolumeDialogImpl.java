@@ -161,6 +161,7 @@ import com.android.systemui.util.RoundedCornerProgressDrawable;
 import com.android.systemui.util.settings.SecureSettings;
 import com.android.systemui.volume.domain.interactor.VolumeDialogInteractor;
 import com.android.systemui.volume.domain.interactor.VolumePanelNavigationInteractor;
+import com.android.systemui.volume.ui.binder.VolumeDialogMenuIconBinder;
 import com.android.systemui.volume.ui.navigation.VolumeNavigator;
 import com.google.android.msdl.domain.MSDLPlayer;
 
@@ -407,6 +408,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private ThemeUtils mThemeUtils;
 
     private boolean mShowMediaButton = true;
+    
+    private final VolumeDialogMenuIconBinder mVolumeDialogMenuIconBinder;
 
     public VolumeDialogImpl(
             Context context,
@@ -426,6 +429,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             DumpManager dumpManager,
             Lazy<SecureSettings> secureSettings,
             VibratorHelper vibratorHelper,
+            VolumeDialogMenuIconBinder volumeDialogMenuIconBinder,
             MSDLPlayer msdlPlayer,
             com.android.systemui.util.time.SystemClock systemClock,
             VolumeDialogInteractor interactor,
@@ -467,6 +471,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         mVolumeNavigator = volumeNavigator;
         mSecureSettings = secureSettings;
         mInteractor = interactor;
+        mVolumeDialogMenuIconBinder = volumeDialogMenuIconBinder;
 
         dumpManager.registerDumpable("VolumeDialogImpl", this);
 
@@ -608,6 +613,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             mDevicePostureController.removeCallback(mDevicePostureControllerCallback);
         }
         mVolumeUtils.onDestroy();
+        mVolumeDialogMenuIconBinder.destroy();
     }
 
     @Override
@@ -917,6 +923,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
         mSettingsView = mDialog.findViewById(R.id.settings_container);
         mSettingsIcon = mDialog.findViewById(R.id.settings);
+        mVolumeDialogMenuIconBinder.bind(mSettingsIcon);
 
         mExpandRowsView = mDialog.findViewById(R.id.expandable_indicator_container);
         mExpandRows = mDialog.findViewById(R.id.expandable_indicator);
