@@ -224,14 +224,6 @@ constructor(
     override fun onStart() {
         super.onStart()
         registerDumpable()
-        mContentResolver.registerContentObserver(
-            LineageSettings.Secure.getUriFor(LineageSettings.Secure.QS_SHOW_BRIGHTNESS_SLIDER),
-            false, mSettingsObserver, UserHandle.USER_CURRENT
-        )
-        mContentResolver.registerContentObserver(
-            LineageSettings.Secure.getUriFor(LineageSettings.Secure.QS_BRIGHTNESS_SLIDER_POSITION),
-            false, mSettingsObserver, UserHandle.USER_CURRENT
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -265,6 +257,14 @@ constructor(
                 handleSettingsChange(key)
             }
         }
+        mContentResolver.registerContentObserver(
+            LineageSettings.Secure.getUriFor(LineageSettings.Secure.QS_SHOW_BRIGHTNESS_SLIDER),
+            false, mSettingsObserver, UserHandle.USER_CURRENT
+        )
+        mContentResolver.registerContentObserver(
+            LineageSettings.Secure.getUriFor(LineageSettings.Secure.QS_BRIGHTNESS_SLIDER_POSITION),
+            false, mSettingsObserver, UserHandle.USER_CURRENT
+        )
     }
 
     override fun onCreateView(
