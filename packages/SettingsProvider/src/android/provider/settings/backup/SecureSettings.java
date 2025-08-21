@@ -310,5 +310,7 @@ public class SecureSettings {
         Settings.Secure.VPN_ENFORCE_DNS,
         Settings.Secure.EXTRA_DIM_AUTO_MODE,
         Settings.Secure.EXTRA_DIM_AUTO_TIME,
+        Settings.Secure.QS_SHOW_DATA_USAGE,
+        Settings.Secure.QS_DATA_USAGE_CYCLE_TYPE,
     };
 }
