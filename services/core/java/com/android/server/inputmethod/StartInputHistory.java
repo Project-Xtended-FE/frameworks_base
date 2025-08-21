@@ -41,7 +41,7 @@ final class StartInputHistory {
      * <p>TODO: Consider to follow what other system services have been doing to manage
      * constants (e.g. {@link android.provider.Settings.Global#ACTIVITY_MANAGER_CONSTANTS}).</p>
      */
-    private static final int ENTRY_SIZE_FOR_HIGH_RAM_DEVICE = 32;
+    private static final int ENTRY_SIZE_FOR_HIGH_RAM_DEVICE = 16;
 
     /**
      * Entry size for low-RAM devices.
