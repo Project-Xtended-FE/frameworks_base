@@ -18,6 +18,7 @@ package com.android.systemui.brightness.ui.compose
 
 import android.content.Context
 import android.graphics.PorterDuff
+import android.os.UserHandle
 import android.provider.Settings
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -108,7 +109,6 @@ import com.android.systemui.haptics.slider.compose.ui.SliderHapticsViewModel
 import com.android.systemui.lifecycle.rememberViewModel
 import com.android.systemui.qs.ui.compose.borderOnFocus
 import com.android.systemui.res.R
-import com.android.systemui.tuner.TunerService
 import com.android.systemui.utils.PolicyRestriction
 
 import lineageos.providers.LineageSettings
@@ -131,29 +131,28 @@ fun BrightnessSlider(
     modifier: Modifier = Modifier,
     showToast: () -> Unit = {},
     hapticsViewModelFactory: SliderHapticsViewModel.Factory,
-    tunerService: TunerService,
 ) {
-    val QS_SHOW_AUTO_BRIGHTNESS =
-        "lineagesecure:" + LineageSettings.Secure.QS_SHOW_AUTO_BRIGHTNESS
-    val QS_BRIGHTNESS_SLIDER_HAPTIC =
-        "system:" + Settings.System.QS_BRIGHTNESS_SLIDER_HAPTIC
+    val context = LocalContext.current
+    val cr = context.contentResolver
 
     val showAutoBrightness = remember {
-        mutableStateOf(
-            TunerService.parseIntegerSwitch(
-                tunerService.getValue(QS_SHOW_AUTO_BRIGHTNESS),
-                true
-            )
-        )
+        try {
+            LineageSettings.Secure.getIntForUser(
+                cr, LineageSettings.Secure.QS_SHOW_AUTO_BRIGHTNESS, 1, UserHandle.USER_CURRENT
+            ) != 0
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     val hapticsEnabled = remember {
-        mutableStateOf(
-            TunerService.parseIntegerSwitch(
-                tunerService.getValue(QS_BRIGHTNESS_SLIDER_HAPTIC),
-                false
-            )
-        )
+        try {
+            Settings.System.getIntForUser(
+                cr, Settings.System.QS_BRIGHTNESS_SLIDER_HAPTIC, 0, UserHandle.USER_CURRENT
+            ) != 0
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     var value by remember(gammaValue) { mutableIntStateOf(gammaValue) }
@@ -164,7 +163,7 @@ fun BrightnessSlider(
     val enabled = !isRestricted
     val interactionSource = remember { MutableInteractionSource() }
     val hapticsViewModel: SliderHapticsViewModel? =
-        if (hapticsEnabled.value) {
+        if (hapticsEnabled) {
             rememberViewModel(traceName = "SliderHapticsViewModel") {
                 hapticsViewModelFactory.create(
                     interactionSource,
@@ -192,7 +191,6 @@ fun BrightnessSlider(
                 iconResProvider(percentage)
             }
         }
-    val context = LocalContext.current
     val painter: Painter by
         produceState<Painter>(
             initialValue = ColorPainter(Color.Transparent),
@@ -211,24 +209,6 @@ fun BrightnessSlider(
 
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     val EFFECT_CLICK = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
-
-    DisposableEffect(Unit) {
-        val tunable = TunerService.Tunable { key, newValue ->
-            if (key == QS_SHOW_AUTO_BRIGHTNESS) {
-                showAutoBrightness.value =
-                    TunerService.parseIntegerSwitch(newValue, true)
-            } else if (key == QS_BRIGHTNESS_SLIDER_HAPTIC) {
-                hapticsEnabled.value =
-                    TunerService.parseIntegerSwitch(newValue, false)
-            }
-        }
-        tunerService.addTunable(tunable, QS_SHOW_AUTO_BRIGHTNESS)
-        tunerService.addTunable(tunable, QS_BRIGHTNESS_SLIDER_HAPTIC)
-
-        onDispose {
-            tunerService.removeTunable(tunable)
-        }
-    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -328,7 +308,7 @@ fun BrightnessSlider(
             }
         )
 
-        if (hasAutoBrightness && showAutoBrightness.value) {
+        if (hasAutoBrightness && showAutoBrightness) {
             Spacer(modifier = Modifier.width(10.dp))
 
             val coroutineScope = rememberCoroutineScope()
@@ -473,7 +453,6 @@ fun BrightnessSliderContainer(
             showToast = {
                 viewModel.showToast(context, R.string.quick_settings_brightness_unable_adjust_msg)
             },
-            tunerService = viewModel.tunerService,
         )
     }
 }
