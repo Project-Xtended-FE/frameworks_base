@@ -287,6 +287,12 @@ public class ProcessRecord implements WindowProcessListener {
     private boolean mKilledByAm;
 
     /**
+     * True when proc has been triggered by lmkd, due to RAM.
+     * not indicate that the killing has been completed
+     */
+    private boolean mKilledByLmk;
+
+    /**
      * True once we know the process has been killed.
      */
     @CompositeRWLock({"mService", "mProcLock"})
@@ -1019,6 +1025,14 @@ public class ProcessRecord implements WindowProcessListener {
     @GuardedBy({"mService", "mProcLock"})
     void setKilledByAm(boolean killedByAm) {
         mKilledByAm = killedByAm;
+    }
+
+    boolean isKilledByLmk() {
+        return mKilledByLmk;
+    }
+
+    void setKilledByLmk(boolean killedByLmk) {
+        mKilledByLmk = killedByLmk;
     }
 
     @GuardedBy(anyOf = {"mService", "mProcLock"})
