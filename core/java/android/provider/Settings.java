@@ -7699,24 +7699,6 @@ public final class Settings {
         public static final String ENABLE_ROTATION_BUTTON = "enable_rotation_button";
 
         /**
-         * Sensor block per-package
-         * @hide
-         */
-        @Readable
-        public static final String SENSOR_BLOCK = "sensor_block";
-
-        /**
-         * Sensor blocked packages
-         * @hide
-         */
-        @Readable
-        public static final String SENSOR_BLOCKED_APP = "sensor_blocked_app";
-
-         /** @hide */
-        @Readable
-        public static final String SENSOR_BLOCKED_APP_DUMMY = "sensor_blocked_app_dummy";
-
-        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
@@ -20182,6 +20164,20 @@ public final class Settings {
          * @hide
          */
         public static final String BLUETOOTH_OFF_TIMEOUT = "bluetooth_off_timeout";
+
+        /**
+         * Sensor block per-package
+         * @hide
+         */
+        @Readable
+        public static final String SENSOR_BLOCK = "sensor_block";
+
+        /**
+         * Sensor blocked packages
+         * @hide
+         */
+        @Readable
+        public static final String SENSOR_BLOCKED_APP = "sensor_blocked_app";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to
