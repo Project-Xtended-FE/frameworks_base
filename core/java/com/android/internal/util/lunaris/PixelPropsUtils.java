@@ -609,6 +609,11 @@ public final class PixelPropsUtils {
     }
 
     public static void onEngineGetCertificateChain() {
+        // If a keybox is found, don't block key attestation
+        if (KeyProviderManager.isKeyboxAvailable()) {
+            dlog("Key attestation blocking is disabled because a keybox is defined to spoof");
+            return;
+        }
         boolean isPixelGmsEnabled = SystemProperties.getBoolean(SPOOF_PIXEL_GMS, false);
         if (!isPixelGmsEnabled)
             return;
