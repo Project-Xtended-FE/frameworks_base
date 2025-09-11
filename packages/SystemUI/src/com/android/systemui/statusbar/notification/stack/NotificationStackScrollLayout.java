@@ -144,6 +144,7 @@ import com.android.systemui.util.Assert;
 import com.android.systemui.util.ColorUtilKt;
 import com.android.systemui.util.DumpUtilsKt;
 import com.android.systemui.util.ListenerSet;
+import com.android.systemui.util.NTBoosterController;
 import com.android.systemui.wallpapers.domain.interactor.WallpaperInteractor;
 
 import com.google.errorprone.annotations.CompileTimeConstant;
@@ -4419,11 +4420,13 @@ public class NotificationStackScrollLayout
         mPanelTracking = true;
         mAmbientState.setPanelTracking(true);
         resetExposedMenuView(true /* animate */, true /* force */);
+        NTBoosterController.get().acquireNotificationStackBoost();
     }
 
     void onPanelTrackingStopped() {
         mPanelTracking = false;
         mAmbientState.setPanelTracking(false);
+        NTBoosterController.get().releaseNotificationStackBoost();
     }
 
     void resetScrollPosition() {
