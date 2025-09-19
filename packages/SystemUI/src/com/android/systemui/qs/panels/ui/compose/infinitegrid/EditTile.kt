@@ -1032,7 +1032,6 @@ fun EditTile(
     progress: () -> Float,
     colors: TileColors = EditModeTileDefaults.editTileColors(),
 ) {
-    val iconSizeDiff = CommonTileDefaults.IconSize - CommonTileDefaults.LargeTileIconSize
     val alpha by animateFloatAsState(if (tileState == TileState.GreyedOut) .4f else 1f)
     Row(
         horizontalArrangement = spacedBy(TileArrangementPadding),
@@ -1075,7 +1074,6 @@ fun EditTile(
                 iconProvider = { tile.icon },
                 color = colors.icon,
                 animateToEnd = true,
-                size = { CommonTileDefaults.IconSize - iconSizeDiff * progress() },
                 modifier = Modifier.align(Alignment.Center),
             )
         }
