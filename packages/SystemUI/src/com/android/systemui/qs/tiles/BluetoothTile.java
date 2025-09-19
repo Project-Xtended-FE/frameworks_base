@@ -27,7 +27,6 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.HandlerExecutor;
 import android.os.Looper;
-import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
 import android.service.quicksettings.Tile;
@@ -123,10 +122,8 @@ public class BluetoothTile extends SecureQSTile<BooleanState> {
 
     @Override
     public BooleanState newTileState() {
-        boolean showDialog = Settings.System.getIntForUser(mContext.getContentResolver(),
-                Settings.System.QS_BT_SHOW_DIALOG, 1, UserHandle.USER_CURRENT) != 0;
         BooleanState s = new BooleanState();
-        s.handlesSecondaryClick = showDialog;
+        s.handlesSecondaryClick = true;
         return s;
     }
 
@@ -164,9 +161,7 @@ public class BluetoothTile extends SecureQSTile<BooleanState> {
     }
 
     private void handleClickEvent(@Nullable Expandable expandable) {
-        boolean showDialog = Settings.System.getIntForUser(mContext.getContentResolver(),
-                Settings.System.QS_BT_SHOW_DIALOG, 1, UserHandle.USER_CURRENT) != 0;
-        if (showDialog && mFeatureFlags.isEnabled(Flags.BLUETOOTH_QS_TILE_DIALOG)) {
+        if (mFeatureFlags.isEnabled(Flags.BLUETOOTH_QS_TILE_DIALOG)) {
             mDetailsContentViewModel.get().showDialog(expandable);
         } else {
             // Secondary clicks are header clicks, just toggle.
@@ -255,9 +250,7 @@ public class BluetoothTile extends SecureQSTile<BooleanState> {
         }
 
         state.expandedAccessibilityClassName = Button.class.getName();
-        boolean showDialog = Settings.System.getIntForUser(mContext.getContentResolver(),
-                Settings.System.QS_BT_SHOW_DIALOG, 1, UserHandle.USER_CURRENT) != 0;
-        state.forceExpandIcon = showDialog && mFeatureFlags.isEnabled(Flags.BLUETOOTH_QS_TILE_DIALOG);
+        state.forceExpandIcon = mFeatureFlags.isEnabled(Flags.BLUETOOTH_QS_TILE_DIALOG);
     }
 
     private void toggleBluetooth() {

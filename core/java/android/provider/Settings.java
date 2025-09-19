@@ -6681,12 +6681,6 @@ public final class Settings {
         public static final String DATA_DISABLED_ICON = "data_disabled_icon";
 
         /**
-         * Whether to show Bluetooth dialog or toggle bluetooth using Bluetooth tile
-         * @hide
-         */
-        public static final String QS_BT_SHOW_DIALOG = "qs_bt_show_dialog";
-
-        /**
          * Whether to use the custom status bar header or not
          * @hide
          */
