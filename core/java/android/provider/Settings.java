@@ -7145,6 +7145,13 @@ public final class Settings {
         public static final String EDGE_SCROLLING_HAPTICS_INTENSITY = "edge_scrolling_haptics_intensity";
 
         /**
+         * Tint statusbar icons with system accent color
+         * @hide
+         */
+        public static final String TINT_STATUSBAR_ICONS_WITH_ACCENT = "tint_statusbar_icons_with_accent";
+
+
+        /**
          * Per-app refresh rate config
          * @hide
          */
