@@ -14167,6 +14167,12 @@ public final class Settings {
         public static final String MEDIA_SQUIGGLE_ANIMATION = "media_squiggle_animation";
 
         /**
+	 * Enables ambient wallpaper and AOD enhancements (0 = disabled, 1 = enabled)
+         * @hide
+         */
+        public static final String AMBIENT_AOD = "ambient_aod";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
