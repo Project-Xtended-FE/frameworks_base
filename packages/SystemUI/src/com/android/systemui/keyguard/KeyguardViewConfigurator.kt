@@ -18,6 +18,8 @@
 package com.android.systemui.keyguard
 
 import android.content.Context
+import android.os.UserHandle
+import android.provider.Settings
 import com.android.internal.jank.InteractionJankMonitor
 import com.android.systemui.CoreStartable
 import com.android.systemui.biometrics.ui.binder.DeviceEntryUnlockTrackerViewBinder
@@ -46,7 +48,6 @@ import com.android.systemui.plugins.FalsingManager
 import com.android.systemui.scene.shared.flag.SceneContainerFlag
 import com.android.systemui.shade.ShadeDisplayAware
 import com.android.systemui.shade.domain.interactor.ShadeInteractor
-import com.android.systemui.shared.Flags.ambientAod
 import com.android.systemui.statusbar.KeyguardIndicationController
 import com.android.systemui.statusbar.LightRevealScrim
 import com.android.systemui.statusbar.VibratorHelper
@@ -179,4 +180,9 @@ constructor(
     }
 
     fun getKeyguardRootView() = keyguardRootView
+
+    private fun ambientAod(): Boolean {
+        return Settings.Secure.getIntForUser(context.contentResolver,
+                Settings.Secure.AMBIENT_AOD, 0, UserHandle.USER_CURRENT) == 1
+    }
 }
