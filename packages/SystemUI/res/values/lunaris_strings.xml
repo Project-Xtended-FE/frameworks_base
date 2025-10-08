@@ -156,4 +156,6 @@
 
     <!-- 5G toggle in Internet Dialog -->
     <string name="enable_fiveg">Enable 5G</string>
+
+    <string name="default_user_name">Lunaris AOSP</string>
 </resources>
