@@ -5487,7 +5487,7 @@ public final class ActiveServices {
         mAm.mHandler.removeCallbacks(r.restarter);
         
         if (AxExtServiceFactory.getProcessManager().checkDelayRestartService(r)) {
-            Slog.d("NtProcessManager", "Delay " + r.processName);
+            //Slog.d("NtProcessManager", "Delay " + r.processName);
             return;
         }
 
