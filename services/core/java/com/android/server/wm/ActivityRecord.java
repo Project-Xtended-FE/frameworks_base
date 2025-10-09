@@ -6216,10 +6216,6 @@ public final class ActivityRecord extends WindowToken {
 
         mTaskSupervisor.updateHomeProcessIfNeeded(this);
         
-        if (isActivityTypeHome()) {
-            AxExtServiceFactory.getMemoryManager().scheduleForkHighUsedApps();
-        }
-
         if (nowVisible) {
             mTaskSupervisor.stopWaitingForActivityVisible(this);
         }
