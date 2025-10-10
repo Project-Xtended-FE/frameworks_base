@@ -1384,6 +1384,8 @@ public final class SystemServer implements Dumpable {
                 t.traceEnd();
             }
         }
+        
+        AxExtServiceFactory.injectPackageManagerservice(mPackageManagerService);
 
         if (Build.IS_ARC) {
             t.traceBegin("StartArcSystemHealthService");
