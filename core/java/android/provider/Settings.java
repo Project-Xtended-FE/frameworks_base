@@ -7275,6 +7275,11 @@ public final class Settings {
         public static final String ISLAND_TRANSPARENT_BACKGROUND = "island_transparent_background";
 
         /**
+         * @hide
+         */
+        public static final String ISLAND_MARGIN_TOP = "island_margin_top";
+
+        /**
          * Whether to show the battery bar
          * @hide
          */
