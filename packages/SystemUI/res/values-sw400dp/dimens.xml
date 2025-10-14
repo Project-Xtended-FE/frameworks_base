@@ -31,5 +31,8 @@
                                                 - navigation_key_width) -->
     <dimen name="screen_pinning_request_side_width">44dp</dimen>
 
+    <dimen name="qs_tile_margin_horizontal">25dp</dimen>
+    <dimen name="qs_tile_margin_vertical">21dp</dimen>
+
 </resources>
 
