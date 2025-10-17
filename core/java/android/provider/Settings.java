@@ -7255,6 +7255,12 @@ public final class Settings {
          */
         public static final String EDGE_LIGHT_STROKE_WIDTH = "edge_light_stroke_width";
 
+        /**
+         * Edge light style
+         * @hide
+         */
+        public static final String EDGE_LIGHT_STYLE = "edge_light_style";
+
 	/**
          * Whether to show the kill app button in notification guts
          * @hide
