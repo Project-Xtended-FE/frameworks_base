@@ -63,6 +63,8 @@ class EdgeLightView(context: Context) : FrameLayout(context) {
     private val MIN_SEGMENTS = 3
 
     private var pulseAnimator: ValueAnimator? = null
+    private var rainbowAnimator: ValueAnimator? = null
+    private var rainbowRotation: Float = 0f
     
     private val roundedPath = Path()
     private val roundedRect = RectF()
@@ -87,7 +89,9 @@ class EdgeLightView(context: Context) : FrameLayout(context) {
             field = value
             if (value) {
                 updateRainbowGradient()
+                startRainbowAnimation()
             } else {
+                stopRainbowAnimation()
                 edgePaint.shader = null
             }
             invalidate()
@@ -170,6 +174,7 @@ class EdgeLightView(context: Context) : FrameLayout(context) {
         super.onDetachedFromWindow()
         pulseAnimator?.cancel()
         pulseAnimator = null
+        stopRainbowAnimation()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -190,13 +195,13 @@ class EdgeLightView(context: Context) : FrameLayout(context) {
         edgePaint.strokeCap = Paint.Cap.BUTT
         edgePaint.alpha = 255
         edgePaint.maskFilter = null
-
+        
         canvas.drawLine(
             halfStroke, 0f,
             halfStroke, height.toFloat(),
             edgePaint
         )
-
+        
         canvas.drawLine(
             width - halfStroke, 0f,
             width - halfStroke, height.toFloat(),
@@ -239,30 +244,62 @@ class EdgeLightView(context: Context) : FrameLayout(context) {
             0xFF0000FF.toInt(),
             0xFF4B0082.toInt(),
             0xFF9400D3.toInt(),
-            0xFFFF0000.toInt() 
+            0xFFFF0000.toInt()
         )
         
         edgePaint.shader = when (edgeStyle) {
             STYLE_ROUNDED -> {
-                SweepGradient(
+                val matrix = android.graphics.Matrix()
+                matrix.postRotate(rainbowRotation, width / 2f, height / 2f)
+                
+                val gradient = SweepGradient(
                     width / 2f,
                     height / 2f,
                     colors,
                     null
                 )
+                gradient.setLocalMatrix(matrix)
+                gradient
             }
             else -> {
+                val offset = (rainbowRotation / 360f) * height
+                
                 LinearGradient(
                     0f,
+                    -offset,
                     0f,
-                    0f,
-                    height.toFloat(),
+                    height.toFloat() - offset,
                     colors,
                     null,
-                    Shader.TileMode.CLAMP
+                    Shader.TileMode.REPEAT
                 )
             }
         }
+    }
+    
+    private fun startRainbowAnimation() {
+        if (rainbowAnimator?.isRunning == true) return
+        
+        rainbowAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
+            duration = 4000L // 4 seconds for full rotation
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.RESTART
+            interpolator = android.view.animation.LinearInterpolator()
+            
+            addUpdateListener { animator ->
+                rainbowRotation = animator.animatedValue as Float
+                updateRainbowGradient()
+                invalidate()
+            }
+            
+            start()
+        }
+    }
+    
+    private fun stopRainbowAnimation() {
+        rainbowAnimator?.cancel()
+        rainbowAnimator = null
+        rainbowRotation = 0f
     }
 
     companion object {
