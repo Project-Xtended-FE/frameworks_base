@@ -32,12 +32,14 @@ class PulseSettingsRepository(private val context: Context) {
         private const val PULSE_ROUNDED_BARS = Settings.Secure.PULSE_ROUNDED_BARS
         private const val PULSE_COLOR = Settings.Secure.PULSE_COLOR
         private const val PULSE_RENDERER = Settings.Secure.PULSE_RENDERER
+        private const val PULSE_SHOW_ON_AMBIENT = Settings.Secure.PULSE_SHOW_ON_AMBIENT
 
         private const val DEFAULT_ENABLED = false
         private const val DEFAULT_BAR_COUNT = 32
         private const val DEFAULT_ROUNDED_BARS = false
         private const val DEFAULT_COLOR = "lavalamp"
         private const val DEFAULT_RENDERER = "solid"
+        private const val DEFAULT_SHOW_ON_AMBIENT = true
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -49,6 +51,7 @@ class PulseSettingsRepository(private val context: Context) {
     private var cachedRoundedBars: Boolean? = null
     private var cachedColorMode: String? = null
     private var cachedRenderer: String? = null
+    private var cachedShowOnAmbient: Boolean? = null
 
     fun startObserving() {
         if (settingsObserver != null) return
@@ -60,7 +63,8 @@ class PulseSettingsRepository(private val context: Context) {
             Settings.Secure.getUriFor(PULSE_BAR_COUNT),
             Settings.Secure.getUriFor(PULSE_ROUNDED_BARS),
             Settings.Secure.getUriFor(PULSE_COLOR),
-            Settings.Secure.getUriFor(PULSE_RENDERER)
+            Settings.Secure.getUriFor(PULSE_RENDERER),
+            Settings.Secure.getUriFor(PULSE_SHOW_ON_AMBIENT)
         ).forEach { uri ->
             context.contentResolver.registerContentObserver(uri, false, settingsObserver!!)
         }
@@ -105,6 +109,13 @@ class PulseSettingsRepository(private val context: Context) {
         return cachedColorMode!!
     }
 
+    fun isPulseShowOnAmbient(): Boolean {
+        if (cachedShowOnAmbient == null) {
+            cachedShowOnAmbient = getSecureSetting(PULSE_SHOW_ON_AMBIENT, DEFAULT_SHOW_ON_AMBIENT)
+        }
+        return cachedShowOnAmbient!!
+    }
+
     fun getStyleMode(): String {
         // Valid values: "solid", "fading", "neon", "retro", "minimal"
         if (cachedRenderer == null) {
@@ -123,6 +134,7 @@ class PulseSettingsRepository(private val context: Context) {
         cachedRoundedBars = null
         cachedColorMode = null
         cachedRenderer = null
+        cachedShowOnAmbient = null
         onSettingsChangedListener?.invoke()
     }
 

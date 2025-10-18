@@ -88,9 +88,19 @@ class PulseViewController @Inject constructor(
         get() = audioProcessor.isCapturing()
 
     val shouldShowPulse: Boolean
-        get() = settingsRepository.isPulseEnabled() &&
-            ScrimUtils.get().isKeyguardShowing() &&
-            MediaSessionManager.get().isMediaPlaying
+        get() {
+            val pulseEnabled = settingsRepository.isPulseEnabled()
+            val keyguardShowing = ScrimUtils.get().isKeyguardShowing()
+            val mediaPlaying = MediaSessionManager.get().isMediaPlaying
+            val isDozing = ScrimUtils.get().isDozing()
+            if (isDozing) {
+                return pulseEnabled && 
+                       keyguardShowing && 
+                       mediaPlaying && 
+                       settingsRepository.isPulseShowOnAmbient()
+            }
+            return pulseEnabled && keyguardShowing && mediaPlaying
+        }
 
     override fun onDataUpdate(data: PulseData) {
         if (settingsRepository.isPulseEnabled()) {
@@ -123,6 +133,10 @@ class PulseViewController @Inject constructor(
     }
 
     override fun onStartedWakingUp() {
+        mainScope.launch { updatePulseState() }
+    }
+
+    override fun onDozingChanged() {
         mainScope.launch { updatePulseState() }
     }
 
