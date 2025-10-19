@@ -7261,6 +7261,12 @@ public final class Settings {
          */
         public static final String EDGE_LIGHT_STYLE = "edge_light_style";
 
+        /**
+         * Edge light animation effect type
+         * @hide
+         */
+        public static final String EDGE_LIGHT_ANIMATION_EFFECT = "edge_light_animation_effect";
+
 	/**
          * Whether to show the kill app button in notification guts
          * @hide
