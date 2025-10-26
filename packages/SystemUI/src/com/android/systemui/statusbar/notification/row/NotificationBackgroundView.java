@@ -277,7 +277,7 @@ public class NotificationBackgroundView extends View implements Dumpable,
         ColorStateList tint = ContrastColorUtil.isColorDark(mTintColor)
                 ? mDarkColoredStatefulColors : mLightColoredStatefulColors;
         stateful.setTintList(tint);
-        stateful.setAlpha(mIsBlurSupported && isColorized() ? (int) (MAX_ALPHA * 0.9f) : MAX_ALPHA);
+        stateful.setAlpha(mIsBlurSupported && isColorized() ? (int) (MAX_ALPHA * 0.8f) : MAX_ALPHA);
     }
 
     /**
@@ -323,10 +323,10 @@ public class NotificationBackgroundView extends View implements Dumpable,
         // BG base layer being a drawable, there isn't a method like setColor() to color it.
         // Instead, we set a color filter that essentially replaces every pixel of the drawable.
         // For non-colorized notifications, this function specifies a new color token.
-        // For colorized notifications, this uses a color that matches the tint color at 90% alpha.
+        // For colorized notifications, this uses a color that matches the tint color at 80% alpha.
         if (mIsBlurSupported) {
             int color = isColorized()
-                ? ColorUtils.setAlphaComponent(mTintColor, (int) (MAX_ALPHA * 0.9f))
+                ? ColorUtils.setAlphaComponent(mTintColor, (int) (MAX_ALPHA * 0.8f))
                 : mNormalColor;
             baseLayer.setColorFilter(
                     new PorterDuffColorFilter(
