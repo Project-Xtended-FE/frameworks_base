@@ -51,6 +51,13 @@ class PulseViewController @Inject constructor(
             setDataListener(this@PulseViewController)
         }
 
+    private var pulseRunning: Boolean = false
+        set(value) {
+            if (value == field) return
+            field = value
+            updatePulseDisplay(value)
+        }
+
     init {
         ScrimUtils.get().addListener(this)
         MediaSessionManager.get().addListener(this)
@@ -59,24 +66,17 @@ class PulseViewController @Inject constructor(
     fun getPulseView(): PulseView = pulseView
 
     private fun updatePulseState() {
-        if (shouldShowPulse) {
-            if (!isRunning) start() 
-        } else {
-            if (isRunning) stop()
-        }
+        pulseRunning = shouldShowPulse
     }
 
-    private fun start() {
+    private fun updatePulseDisplay(show: Boolean) {
         mainScope.launch {
-            pulseView.setVisibility(true)
-            audioProcessor.startCapture()
-        }
-    }
-
-    private fun stop() {
-        mainScope.launch {
-            pulseView.setVisibility(false)
-            audioProcessor.stopCapture()
+            pulseView.setVisibility(show)
+            if (show) {
+                audioProcessor.startCapture()
+            } else {
+                audioProcessor.stopCapture()
+            }
         }
     }
 
@@ -85,7 +85,7 @@ class PulseViewController @Inject constructor(
     }
 
     val isRunning: Boolean
-        get() = audioProcessor.isCapturing()
+        get() = pulseRunning
 
     val shouldShowPulse: Boolean
         get() {
@@ -93,17 +93,19 @@ class PulseViewController @Inject constructor(
             val keyguardShowing = ScrimUtils.get().isKeyguardShowing()
             val mediaPlaying = MediaSessionManager.get().isMediaPlaying
             val isDozing = ScrimUtils.get().isDozing()
-            if (isDozing) {
-                return pulseEnabled && 
-                       keyguardShowing && 
-                       mediaPlaying && 
-                       settingsRepository.isPulseShowOnAmbient()
+            val isPulsing = ScrimUtils.get().isPulsing()
+            
+            if (!pulseEnabled || !mediaPlaying) return false
+            
+            if (isDozing || isPulsing) {
+                return settingsRepository.isPulseShowOnAmbient()
             }
-            return pulseEnabled && keyguardShowing && mediaPlaying
+            
+            return keyguardShowing
         }
 
     override fun onDataUpdate(data: PulseData) {
-        if (settingsRepository.isPulseEnabled()) {
+        if (shouldShowPulse) {
             mainScope.launch { pulseView.updateVisualizerData(data) }
         }
     }
@@ -113,7 +115,9 @@ class PulseViewController @Inject constructor(
     }
 
     override fun onMediaColorsChanged(color: Int) {
-        pulseView.onMediaColorsChanged(color)
+        if (settingsRepository.isPulseEnabled()) {
+            pulseView.onMediaColorsChanged(color)
+        }
     }
 
     override fun onKeyguardShowingChanged(showing: Boolean) {
@@ -121,15 +125,15 @@ class PulseViewController @Inject constructor(
     }
 
     override fun onKeyguardFadingAwayChanged(fadingAway: Boolean) {
-        stop()
+        pulseRunning = false
     }
 
     override fun onKeyguardGoingAwayChanged(goingAway: Boolean) {
-        stop()
+        pulseRunning = false
     }
 
     override fun onScreenTurnedOff() {
-        stop()
+        pulseRunning = false
     }
 
     override fun onStartedWakingUp() {
@@ -140,8 +144,15 @@ class PulseViewController @Inject constructor(
         mainScope.launch { updatePulseState() }
     }
 
+    override fun setPulsing(pulsing: Boolean) {
+        mainScope.launch { updatePulseState() }
+    }
+
     fun destroy() {
         mainScope.cancel()
+        settingsRepository.stopObserving()
+        ScrimUtils.get().removeListener(this)
+        MediaSessionManager.get().removeListener(this)
     }
 
     companion object {
