@@ -162,4 +162,8 @@
     <!-- Island notification -->
     <string name="now_playing_on">Now Playing on %1$s</string>
     <string name="by_artist">%1$s by %2$s</string>
+
+    <!-- Media Info Tile -->
+    <string name="quick_settings_media_info_label">Media Info</string>
+    <string name="quick_settings_media_info_no_music">No music playing</string>
 </resources>
