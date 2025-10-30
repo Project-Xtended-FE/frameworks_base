@@ -160,6 +160,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
+import android.provider.Settings
 import lineageos.providers.LineageSettings
 
 @SuppressLint("ValidFragment")
@@ -1280,6 +1281,21 @@ fun rememberShowSlider(): Int {
 }
 
 @Composable
+fun rememberShowMediaPlayer(): Boolean {
+    val context = LocalContext.current
+    return remember {
+        val cr = context.contentResolver
+        try {
+            Settings.Secure.getIntForUser(
+                cr, Settings.Secure.QS_SHOW_MEDIA_PLAYER, 1, UserHandle.USER_CURRENT
+            ) == 1
+        } catch (_: Throwable) {
+            true
+        }
+    }
+}
+
+@Composable
 @VisibleForTesting
 fun QuickQuickSettingsLayout(
     brightness: @Composable () -> Unit,
@@ -1289,13 +1305,14 @@ fun QuickQuickSettingsLayout(
 ) {
     val sliderAtTop = rememberSliderAtTop()
     val showSlider = rememberShowSlider()
+    val showMediaPlayer = rememberShowMediaPlayer()
 
     Column(verticalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical))) {
         if (showSlider == 2 && sliderAtTop) {
             brightness()
         }
 
-        if (mediaInRow) {
+        if (mediaInRow && showMediaPlayer) {
             Row(
                 horizontalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical)),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1305,7 +1322,9 @@ fun QuickQuickSettingsLayout(
             }
         } else {
             tiles()
-            media()
+            if (showMediaPlayer) {
+                media()
+            }
         }
 
         if (showSlider == 2 && !sliderAtTop) {
@@ -1324,6 +1343,7 @@ fun QuickSettingsLayout(
 ) {
     val sliderAtTop = rememberSliderAtTop()
     val showSlider = rememberShowSlider()
+    val showMediaPlayer = rememberShowMediaPlayer()
 
     Column(
         verticalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical)),
@@ -1333,7 +1353,7 @@ fun QuickSettingsLayout(
             brightness()
         }
 
-        if (mediaInRow) {
+        if (mediaInRow && showMediaPlayer) {
             Row(
                 horizontalArrangement = spacedBy(QuickSettingsShade.Dimensions.Padding),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1346,7 +1366,9 @@ fun QuickSettingsLayout(
             if (showSlider != 0 && !sliderAtTop) {
                 brightness()
             }
-            media()
+            if (showMediaPlayer) {
+                media()
+            }
         }
     }
 }
