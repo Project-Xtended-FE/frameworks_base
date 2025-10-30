@@ -14213,6 +14213,12 @@ public final class Settings {
         public static final String MEDIA_SQUIGGLE_ANIMATION = "media_squiggle_animation";
 
         /**
+         * Whether to show qs media player
+         * @hide
+         */
+        public static final String QS_SHOW_MEDIA_PLAYER = "qs_show_media_player";
+
+        /**
 	 * Enables ambient wallpaper and AOD enhancements (0 = disabled, 1 = enabled)
          * @hide
          */
