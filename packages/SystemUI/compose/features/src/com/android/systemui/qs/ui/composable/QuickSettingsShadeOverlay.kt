@@ -16,6 +16,8 @@
 
 package com.android.systemui.qs.ui.composable
 
+import android.provider.Settings
+import android.os.UserHandle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -25,6 +27,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -33,6 +36,7 @@ import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,15 +47,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.android.compose.animation.scene.ContentScope
 import com.android.compose.animation.scene.ElementKey
 import com.android.compose.animation.scene.UserAction
 import com.android.compose.animation.scene.UserActionResult
 import com.android.compose.animation.scene.content.state.TransitionState
 import com.android.compose.modifiers.thenIf
+import com.android.app.tracing.coroutines.launchTraced as launch
 import com.android.systemui.brightness.ui.compose.BrightnessSliderContainer
 import com.android.systemui.brightness.ui.compose.ContainerColors
 import com.android.systemui.compose.modifiers.sysuiResTag
@@ -59,6 +67,8 @@ import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.lifecycle.rememberViewModel
 import com.android.systemui.media.controls.ui.composable.MediaCarousel
 import com.android.systemui.media.controls.ui.view.MediaHostState.Companion.COLLAPSED
+import com.android.systemui.media.ui.compose.MiniPlayerCompact
+import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
 import com.android.systemui.notifications.ui.composable.SnoozeableHeadsUpNotificationSpace
 import com.android.systemui.qs.composefragment.ui.GridAnchor
 import com.android.systemui.qs.flags.QsDetailedView
@@ -83,6 +93,10 @@ import dagger.Lazy
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 
+private const val MEDIA_PLAYER_DISABLED = 0
+private const val MEDIA_PLAYER_STOCK = 1
+private const val MEDIA_PLAYER_MINI = 2
+
 @SysUISingleton
 class QuickSettingsShadeOverlay
 @Inject
@@ -90,6 +104,7 @@ constructor(
     private val actionsViewModelFactory: QuickSettingsShadeOverlayActionsViewModel.Factory,
     private val contentViewModelFactory: QuickSettingsShadeOverlayContentViewModel.Factory,
     private val quickSettingsContainerViewModelFactory: QuickSettingsContainerViewModel.Factory,
+    private val miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
     private val notificationStackScrollView: Lazy<NotificationScrollView>,
     private val notificationsPlaceholderViewModelFactory: NotificationsPlaceholderViewModel.Factory,
 ) : Overlay {
@@ -134,20 +149,20 @@ constructor(
         // Set the bounds to null when the QuickSettings overlay disappears.
         DisposableEffect(Unit) { onDispose { contentViewModel.onPanelShapeChanged(null) } }
 
-        Box(modifier = modifier.graphicsLayer { alpha = contentAlphaFromBrightnessMirror }) {
-            OverlayShade(
-                panelElement = QuickSettingsShade.Elements.Panel,
-                alignmentOnWideScreens = Alignment.TopEnd,
-                onScrimClicked = contentViewModel::onScrimClicked,
-                header = {
-                    OverlayShadeHeader(
-                        viewModel = quickSettingsContainerViewModel.shadeHeaderViewModel,
-                        modifier = Modifier.element(QuickSettingsShade.Elements.StatusBar),
-                    )
-                },
-            ) {
+        val onScrimClickedStable = remember { contentViewModel::onScrimClicked }
+        val headerStable = remember<@Composable () -> Unit> {
+            {
+                OverlayShadeHeader(
+                    viewModel = quickSettingsContainerViewModel.shadeHeaderViewModel,
+                    modifier = Modifier.element(QuickSettingsShade.Elements.StatusBar),
+                )
+            }
+        }
+        val contentStable = remember<@Composable () -> Unit> {
+            {
                 QuickSettingsContainer(
                     viewModel = quickSettingsContainerViewModel,
+                    miniPlayerViewModelFactory = miniPlayerViewModelFactory,
                     modifier =
                         Modifier.onPlaced { coordinates ->
                             val shape =
@@ -160,6 +175,16 @@ constructor(
                         },
                 )
             }
+        }
+
+        Box(modifier = modifier.graphicsLayer { alpha = contentAlphaFromBrightnessMirror }) {
+            OverlayShade(
+                panelElement = QuickSettingsShade.Elements.Panel,
+                alignmentOnWideScreens = Alignment.TopEnd,
+                onScrimClicked = onScrimClickedStable,
+                header = headerStable,
+                content = contentStable,
+            )
             SnoozeableHeadsUpNotificationSpace(
                 stackScrollView = notificationStackScrollView.get(),
                 viewModel = hunPlaceholderViewModel,
@@ -180,6 +205,7 @@ private sealed interface ShadeBodyState {
 @Composable
 fun ContentScope.QuickSettingsContainer(
     viewModel: QuickSettingsContainerViewModel,
+    miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
     modifier: Modifier = Modifier,
 ) {
     val isEditing by viewModel.editModeViewModel.isEditing.collectAsStateWithLifecycle()
@@ -211,6 +237,7 @@ fun ContentScope.QuickSettingsContainer(
             ShadeBodyState.Default -> {
                 QuickSettingsLayout(
                     viewModel = viewModel,
+                    miniPlayerViewModelFactory = miniPlayerViewModelFactory,
                     modifier = modifier.sysuiResTag("quick_settings_panel"),
                 )
             }
@@ -218,12 +245,31 @@ fun ContentScope.QuickSettingsContainer(
     }
 }
 
-/** Column containing Brightness and QS tiles. */
+@Composable
+fun rememberMediaPlayerMode(): Int {
+    val context = LocalContext.current
+    return remember {
+        try {
+            Settings.Secure.getIntForUser(
+                context.contentResolver,
+                Settings.Secure.QS_SHOW_MEDIA_PLAYER,
+                MEDIA_PLAYER_STOCK,
+                UserHandle.USER_CURRENT
+            )
+        } catch (e: Exception) {
+            MEDIA_PLAYER_STOCK
+        }
+    }
+}
+
 @Composable
 fun ContentScope.QuickSettingsLayout(
     viewModel: QuickSettingsContainerViewModel,
+    miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
     modifier: Modifier = Modifier,
 ) {
+    val mediaPlayerMode = rememberMediaPlayerMode()
+
     Column(
         verticalArrangement = Arrangement.spacedBy(QuickSettingsShade.Dimensions.Padding),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -251,29 +297,43 @@ fun ContentScope.QuickSettingsLayout(
             verticalArrangement = Arrangement.spacedBy(QuickSettingsShade.Dimensions.Padding),
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
         ) {
-            MediaCarousel(
-                isVisible = viewModel.showMedia,
-                mediaHost = viewModel.mediaHost,
-                carouselController = viewModel.mediaCarouselController,
-                usingCollapsedLandscapeMedia = true,
-                modifier = Modifier.padding(horizontal = QuickSettingsShade.Dimensions.Padding),
-            )
-
-            Box(
-                Modifier.systemGestureExclusionInShade(
-                    enabled = { layoutState.transitionState is TransitionState.Idle }
-                )
-            ) {
-                BrightnessSliderContainer(
-                    viewModel = viewModel.brightnessSliderViewModel,
-                    containerColors =
-                        ContainerColors(
-                            idleColor = Color.Transparent,
-                            mirrorColor = OverlayShade.Colors.PanelBackground,
-                        ),
-                    modifier = Modifier.fillMaxWidth(),
+            if (mediaPlayerMode == MEDIA_PLAYER_STOCK && viewModel.showMedia) {
+                MediaCarousel(
+                    isVisible = viewModel.showMedia,
+                    mediaHost = viewModel.mediaHost,
+                    carouselController = viewModel.mediaCarouselController,
+                    usingCollapsedLandscapeMedia = true,
+                    modifier = Modifier.padding(horizontal = QuickSettingsShade.Dimensions.Padding),
                 )
             }
+
+            Box(
+            Modifier.systemGestureExclusionInShade(
+                enabled = { layoutState.transitionState is TransitionState.Idle }
+            )
+        ) {
+            Column(verticalArrangement = spacedBy(8.dp)) {
+                BrightnessSliderContainer(
+                    viewModel = viewModel.brightnessSliderViewModel,
+                    containerColors = ContainerColors(
+                        idleColor = Color.Transparent,
+                        mirrorColor = OverlayShade.Colors.PanelBackground,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (mediaPlayerMode == MEDIA_PLAYER_MINI) {
+                    val miniPlayerViewModel = rememberViewModel("MiniPlayerOverlay") {
+                        miniPlayerViewModelFactory.create()
+                    }
+                    MiniPlayerCompact(
+                        viewModel = miniPlayerViewModel,
+                        compact = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
 
             Box {
                 GridAnchor()
