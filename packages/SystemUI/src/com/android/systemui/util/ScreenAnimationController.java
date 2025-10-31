@@ -5,7 +5,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.hardware.display.AmbientDisplayConfiguration;
-import android.hardware.display.DisplayManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -15,12 +14,10 @@ import android.provider.Settings;
 public class ScreenAnimationController {
     private static ScreenAnimationController sInstance;
     private AmbientDisplayConfiguration mAmbientDisplayConfiguration = null;
-    private DisplayManager mDisplayManager = null;
     private ContentResolver mContentResolver = null;
     private boolean mPanelExpandedWhenScreenOff = false;
     private boolean mLandscapeWhenScreenOff = false;
     private boolean mIsPressSleepButton = false;
-    private boolean mUnlockAnimPlaying = false;
     private boolean mAnimationEnabled = true;
     
     public static final String SCREEN_ANIMATION_ENABLED = "screen_animation_enabled";
@@ -47,9 +44,8 @@ public class ScreenAnimationController {
         mIsPressSleepButton = powerButton;
     }
     
-    public void init(Context context, AmbientDisplayConfiguration ambientConfig, DisplayManager displayManager) {
+    public void init(Context context, AmbientDisplayConfiguration ambientConfig) {
         mAmbientDisplayConfiguration = ambientConfig;
-        mDisplayManager = displayManager;
         mContentResolver = context.getContentResolver();
         
         register();
@@ -68,26 +64,12 @@ public class ScreenAnimationController {
         }
     }
     
-    public void setAnimationPlaying(boolean playing) {
-        mUnlockAnimPlaying = playing;
-    }
-    
     public boolean isLandscapeScreenOff() {
         return mLandscapeWhenScreenOff;
     }
     
     public boolean isPanelExpandedWhenScreenOff() {
         return mPanelExpandedWhenScreenOff;
-    }
-    
-    public boolean isUnlockAnimPlaying() {
-        return mUnlockAnimPlaying;
-    }
-    
-    public int getCurDisplayState() {
-        return mDisplayManager != null 
-            ? mDisplayManager.getDisplay(0).getCommittedState()
-            : 0;
     }
     
     public boolean shouldPlayAnimation() {

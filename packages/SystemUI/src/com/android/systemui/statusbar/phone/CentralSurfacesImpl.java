@@ -936,8 +936,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
         mWindowManagerProvider = windowManagerProvider;
         
         ScreenAnimationController.INSTANCE().init(mContext,
-            new AmbientDisplayConfiguration(mContext), 
-            (DisplayManager) mContext.getSystemService("display"));
+            new AmbientDisplayConfiguration(mContext));
     }
 
     private void initBubbles(Bubbles bubbles) {
