@@ -56,7 +56,7 @@ import lineageos.util.palette.Palette;
 import com.android.internal.graphics.ColorUtils;
 
 public class SparkMusic extends RelativeLayout implements NotificationMediaManager.MediaListener, Palette.PaletteAsyncListener {
-   private static final boolean DEBUG = true;
+   private static final boolean DEBUG = false;
    private static final String TAG = "SparkMusic";
 
    private Context mContext;
@@ -108,12 +108,25 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
       updateObjects();
    }
 
+   private boolean shouldShowMusicPanel() {
+       if (mContext == null) {
+           return false;
+       }
+       return Settings.System.getIntForUser(mContext.getContentResolver(),
+               Settings.System.MUSIC_VOLUME_PANEL_DIALOG, 0, UserHandle.USER_CURRENT) != 0;
+   }
+
    /**
     * Called whenever new media metadata is available.
     * @param metadata New metadata.
     */
    @Override
    public void onPrimaryMetadataOrStateChanged(MediaMetadata mediaMetadata, int state) {
+      if (!shouldShowMusicPanel()) {
+          if (DEBUG) Log.d(TAG, "onPrimaryMetadataOrStateChanged: skipped (music panel disabled)");
+          return;
+      }
+
       if (DEBUG) Log.d(TAG, "onPrimaryMetadataOrStateChanged: metadata=" + (mediaMetadata != null) + ", state=" + state);
       
       CharSequence title = null;
@@ -138,6 +151,12 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
    }
 
    public void update() {
+      if (!shouldShowMusicPanel()) {
+          if (DEBUG) Log.d(TAG, "update: skipped (music panel disabled)");
+          setVisibility(View.GONE);
+          return;
+      }
+
       if (DEBUG) Log.d(TAG, "update()");
       updateObjects();
       updateButtons();
@@ -146,6 +165,10 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
    }
 
    public void updateIconPlayPause() {
+       if (!shouldShowMusicPanel()) {
+           return;
+       }
+
        if (DEBUG) Log.d(TAG, "updateIconPlayPause()");
        
        if (mMediaManager != null && mPlayPause != null) {
@@ -174,6 +197,10 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
    }
 
    public void updateButtons() {
+       if (!shouldShowMusicPanel()) {
+           return;
+       }
+
        if (mMediaManager == null) return;
        
        if (mPrevious != null) {
@@ -216,8 +243,13 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
            return;
        }
 
-       boolean show = Settings.System.getIntForUser(mContext.getContentResolver(),
-               Settings.System.MUSIC_VOLUME_PANEL_DIALOG, 0, UserHandle.USER_CURRENT) != 0;
+       boolean show = shouldShowMusicPanel();
+
+       if (!show) {
+           setVisibility(View.GONE);
+           if (DEBUG) Log.d(TAG, "updateViews: music panel disabled");
+           return;
+       }
 
        if (mMediaManager != null && mMediaTitle != null && mMediaArtist != null && mMediaArtwork != null
            && mTitle != null && mArtist != null && mArtwork != null) {
@@ -238,7 +270,7 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
                    }
                }
                
-               setVisibility(show ? View.VISIBLE : View.GONE);
+               setVisibility(View.VISIBLE);
            } catch (Exception e) {
                Log.e(TAG, "Error updating views", e);
                setVisibility(View.GONE);
@@ -260,6 +292,11 @@ public class SparkMusic extends RelativeLayout implements NotificationMediaManag
 
    @Override
    public void onGenerated(Palette palette) {
+       if (!shouldShowMusicPanel()) {
+           if (DEBUG) Log.d(TAG, "onGenerated: skipped (music panel disabled)");
+           return;
+       }
+
        if (DEBUG) Log.d(TAG, "onGenerated()");
        
        if (palette == null) {
