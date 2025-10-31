@@ -56,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +79,7 @@ import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -121,6 +123,9 @@ import com.android.systemui.keyboard.shortcut.ui.composable.ProvideShortcutHelpe
 import com.android.systemui.lifecycle.repeatWhenAttached
 import com.android.systemui.lifecycle.setSnapshotBinding
 import com.android.systemui.media.controls.ui.view.MediaHost
+import com.android.systemui.media.ui.compose.MiniPlayerCompact
+import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
+import com.android.systemui.lifecycle.rememberViewModel
 import com.android.systemui.plugins.qs.QS
 import com.android.systemui.plugins.qs.QSContainerController
 import com.android.systemui.qs.composefragment.SceneKeys.QuickQuickSettings
@@ -163,11 +168,20 @@ import kotlinx.coroutines.launch
 import android.provider.Settings
 import lineageos.providers.LineageSettings
 
+private const val MEDIA_PLAYER_DISABLED = 0
+private const val MEDIA_PLAYER_STOCK = 1
+private const val MEDIA_PLAYER_MINI = 2
+
+private object MiniPlayerElementKey {
+    val MiniPlayer = ElementKey("MiniPlayer")
+}
+
 @SuppressLint("ValidFragment")
 class QSFragmentCompose
 @Inject
 constructor(
     private val qsFragmentComposeViewModelFactory: QSFragmentComposeViewModel.Factory,
+    private val miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
     private val dumpManager: DumpManager,
 ) : LifecycleFragment(), QS, Dumpable {
 
@@ -670,7 +684,7 @@ constructor(
                             },
                         )
                     }
-                val Media =
+                val StockMedia =
                     @Composable {
                         if (viewModel.qqsMediaVisible) {
                             MediaObject(
@@ -683,6 +697,24 @@ constructor(
                             )
                         }
                     }
+
+                val MiniMedia = 
+                    @Composable {
+                    Element(MiniPlayerElementKey.MiniPlayer, modifier = Modifier.fillMaxWidth()) {
+                        val miniPlayerViewModel = rememberViewModel("MiniPlayerQQS") {
+                            miniPlayerViewModelFactory.create()
+                        }
+                        val expansionProgress by remember {
+                            derivedStateOf { viewModel.expansionState.progress }
+                        }
+                        MiniPlayerCompact(
+                            viewModel = miniPlayerViewModel,
+                            compact = true,
+                            expansionProgress = expansionProgress,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
 
                 if (viewModel.isQsEnabled) {
                     Box(
@@ -697,7 +729,8 @@ constructor(
                         QuickQuickSettingsLayout(
                             brightness = BrightnessSlider,
                             tiles = Tiles,
-                            media = Media,
+                            stockMedia = StockMedia,
+                            miniMedia = MiniMedia,
                             mediaInRow = viewModel.qqsMediaInRow,
                         )
                     }
@@ -782,15 +815,33 @@ constructor(
                                     )
                                 }
                             }
-                        val Media =
+                        val StockMedia = 
                             @Composable {
-                                if (viewModel.qsMediaVisible) {
-                                    MediaObject(
-                                        mediaHost = viewModel.qsMediaHost,
-                                        update = { translationY = viewModel.qsMediaTranslationY },
-                                    )
-                                }
+                            if (viewModel.qsMediaVisible) {
+                                MediaObject(
+                                    mediaHost = viewModel.qsMediaHost,
+                                    update = { translationY = viewModel.qsMediaTranslationY },
+                                )
                             }
+                        }
+                        
+                        val MiniMedia = 
+                            @Composable {
+                            Element(MiniPlayerElementKey.MiniPlayer, modifier = Modifier.fillMaxWidth()) {
+                                val miniPlayerViewModel = rememberViewModel("MiniPlayerQS") {
+                                    miniPlayerViewModelFactory.create()
+                                }
+                                val expansionProgress by remember {
+                                    derivedStateOf { viewModel.expansionState.progress }
+                                }
+                                MiniPlayerCompact(
+                                    viewModel = miniPlayerViewModel,
+                                    compact = false,
+                                    expansionProgress = expansionProgress,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                         Box(
                             modifier =
                                 Modifier.fillMaxWidth()
@@ -804,7 +855,8 @@ constructor(
                             QuickSettingsLayout(
                                 brightness = BrightnessSlider,
                                 tiles = TileGrid,
-                                media = Media,
+                                stockMedia = StockMedia,
+                                miniMedia = MiniMedia,
                                 mediaInRow = viewModel.qsMediaInRow,
                             )
                         }
@@ -1281,16 +1333,16 @@ fun rememberShowSlider(): Int {
 }
 
 @Composable
-fun rememberShowMediaPlayer(): Boolean {
+fun rememberShowMediaPlayer(): Int {
     val context = LocalContext.current
     return remember {
         val cr = context.contentResolver
         try {
             Settings.Secure.getIntForUser(
-                cr, Settings.Secure.QS_SHOW_MEDIA_PLAYER, 1, UserHandle.USER_CURRENT
-            ) == 1
+                cr, Settings.Secure.QS_SHOW_MEDIA_PLAYER, MEDIA_PLAYER_STOCK, UserHandle.USER_CURRENT
+            )
         } catch (_: Throwable) {
-            true
+            MEDIA_PLAYER_STOCK
         }
     }
 }
@@ -1300,31 +1352,37 @@ fun rememberShowMediaPlayer(): Boolean {
 fun QuickQuickSettingsLayout(
     brightness: @Composable () -> Unit,
     tiles: @Composable () -> Unit,
-    media: @Composable () -> Unit,
+    stockMedia: @Composable () -> Unit,
+    miniMedia: @Composable () -> Unit,
     mediaInRow: Boolean,
 ) {
     val sliderAtTop = rememberSliderAtTop()
     val showSlider = rememberShowSlider()
-    val showMediaPlayer = rememberShowMediaPlayer()
+    val mediaPlayerMode = rememberShowMediaPlayer()
 
     Column(verticalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical))) {
         if (showSlider == 2 && sliderAtTop) {
             brightness()
         }
 
-        if (mediaInRow && showMediaPlayer) {
+        if (mediaInRow && mediaPlayerMode == MEDIA_PLAYER_STOCK) {
             Row(
                 horizontalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(modifier = Modifier.weight(1f)) { tiles() }
-                Box(modifier = Modifier.weight(1f)) { media() }
+                Box(modifier = Modifier.weight(1f)) { stockMedia() }
             }
         } else {
             tiles()
-            if (showMediaPlayer) {
-                media()
-            }
+        }
+
+        if (mediaPlayerMode == MEDIA_PLAYER_STOCK && !mediaInRow) {
+            stockMedia()
+        }
+
+        if (mediaPlayerMode == MEDIA_PLAYER_MINI) {
+            miniMedia()
         }
 
         if (showSlider == 2 && !sliderAtTop) {
@@ -1338,12 +1396,13 @@ fun QuickQuickSettingsLayout(
 fun QuickSettingsLayout(
     brightness: @Composable () -> Unit,
     tiles: @Composable () -> Unit,
-    media: @Composable () -> Unit,
+    stockMedia: @Composable () -> Unit,
+    miniMedia: @Composable () -> Unit,
     mediaInRow: Boolean,
 ) {
     val sliderAtTop = rememberSliderAtTop()
     val showSlider = rememberShowSlider()
-    val showMediaPlayer = rememberShowMediaPlayer()
+    val mediaPlayerMode = rememberShowMediaPlayer()
 
     Column(
         verticalArrangement = spacedBy(dimensionResource(R.dimen.qs_tile_margin_vertical)),
@@ -1353,22 +1412,28 @@ fun QuickSettingsLayout(
             brightness()
         }
 
-        if (mediaInRow && showMediaPlayer) {
+        if (mediaInRow && mediaPlayerMode == MEDIA_PLAYER_STOCK) {
             Row(
                 horizontalArrangement = spacedBy(QuickSettingsShade.Dimensions.Padding),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(modifier = Modifier.weight(1f)) { tiles() }
-                Box(modifier = Modifier.weight(1f)) { media() }
+                Box(modifier = Modifier.weight(1f)) { stockMedia() }
             }
         } else {
             tiles()
-            if (showSlider != 0 && !sliderAtTop) {
-                brightness()
-            }
-            if (showMediaPlayer) {
-                media()
-            }
+        }
+
+        if (mediaPlayerMode == MEDIA_PLAYER_STOCK && !mediaInRow) {
+            stockMedia()
+        }
+
+        if (mediaPlayerMode == MEDIA_PLAYER_MINI) {
+            miniMedia()
+        }
+
+        if (showSlider != 0 && !sliderAtTop) {
+            brightness()
         }
     }
 }
