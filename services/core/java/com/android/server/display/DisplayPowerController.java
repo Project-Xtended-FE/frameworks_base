@@ -2331,7 +2331,6 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
             Slog.i(TAG, "Window Manager Policy screenTurningOn complete");
         }
         
-        AxExtServiceFactory.getAppUsageManager().setScreenState(isOff);
         AxExtServiceFactory.getUxPerformance().setScreenState(isOff);
 
         // Return true if the screen isn't blocked.

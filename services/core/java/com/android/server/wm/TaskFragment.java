@@ -1545,9 +1545,6 @@ class TaskFragment extends WindowContainer<WindowContainer> {
             return true;
         }
         
-        AxExtServiceFactory.getAppUsageManager().updateLaunchTime(next.packageName);
-        AxExtServiceFactory.getMemoryManager().tuneLmkdParam(next.packageName);
-        AxExtServiceFactory.getMemoryManager().setHighPressureScene(next.packageName);
         AxExtServiceFactory.getProcessManager().updateTopApp(next.packageName);
 
         // If the most recent activity was noHistory but was only stopped rather
@@ -1866,10 +1863,6 @@ class TaskFragment extends WindowContainer<WindowContainer> {
             }
         }
         ActivityRecord prev = mResumedActivity;
-
-        if (this.mResumedActivity != null) {
-            AxExtServiceFactory.getAppUsageManager().updateDuration(this.mResumedActivity.packageName);
-        }
 
         if (prev == null) {
             if (resuming == null) {
