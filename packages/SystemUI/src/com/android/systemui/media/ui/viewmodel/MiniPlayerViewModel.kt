@@ -20,18 +20,20 @@ import android.content.Context
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.android.systemui.dagger.SysUISingleton
+import com.android.systemui.res.R
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+private const val TAG = "MiniPlayerViewModel"
+
 data class MediaState(
-    val title: String = "Open player",
-    val artist: String = "No active media",
+    val title: String = "",
+    val artist: String = "",
     val isPlaying: Boolean = false,
     val hasActiveMedia: Boolean = false,
     val packageName: String? = null
@@ -57,23 +59,23 @@ class MiniPlayerViewModel @AssistedInject constructor(
         }
     }
 
-    private val sessionListener = object : MediaSessionManager.OnActiveSessionsChangedListener {
-        override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
-            updateActiveController(controllers)
-        }
+    private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
+        updateActiveController(controllers)
     }
 
     init {
-        try {
+        runCatching {
             val controllers = mediaSessionManager.getActiveSessions(null)
             updateActiveController(controllers)
-        } catch (e: SecurityException) {
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to get active media sessions", e)
             _mediaState.value = MediaState()
         }
 
-        try {
+        runCatching {
             mediaSessionManager.addOnActiveSessionsChangedListener(sessionListener, null)
-        } catch (e: SecurityException) {
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to register session listener", e)
         }
     }
 
@@ -95,9 +97,9 @@ class MiniPlayerViewModel @AssistedInject constructor(
 
             _mediaState.value = MediaState(
                 title = metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
-                    ?: "Unknown Track",
+                    ?: context.getString(R.string.media_unknown_track),
                 artist = metadata?.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST)
-                    ?: "Unknown Artist",
+                    ?: context.getString(R.string.media_unknown_artist),
                 isPlaying = playbackState?.state == PlaybackState.STATE_PLAYING,
                 hasActiveMedia = true,
                 packageName = controller.packageName
@@ -111,27 +113,42 @@ class MiniPlayerViewModel @AssistedInject constructor(
         val controller = activeController ?: return
         val playbackState = controller.playbackState?.state
 
-        when (playbackState) {
-            PlaybackState.STATE_PLAYING -> controller.transportControls.pause()
-            PlaybackState.STATE_PAUSED -> controller.transportControls.play()
-            else -> controller.transportControls.play()
+        runCatching {
+            when (playbackState) {
+                PlaybackState.STATE_PLAYING -> controller.transportControls.pause()
+                PlaybackState.STATE_PAUSED,
+                PlaybackState.STATE_STOPPED,
+                null -> controller.transportControls.play()
+                else -> controller.transportControls.play()
+            }
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to toggle playback", e)
         }
     }
 
     fun skipToNext() {
-        activeController?.transportControls?.skipToNext()
+        runCatching {
+            activeController?.transportControls?.skipToNext()
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to skip to next", e)
+        }
     }
 
     fun skipToPrevious() {
-        activeController?.transportControls?.skipToPrevious()
+        runCatching {
+            activeController?.transportControls?.skipToPrevious()
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to skip to previous", e)
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
         activeController?.unregisterCallback(controllerCallback)
-        try {
+        runCatching {
             mediaSessionManager.removeOnActiveSessionsChangedListener(sessionListener)
-        } catch (e: Exception) {
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to unregister session listener", e)
         }
     }
 

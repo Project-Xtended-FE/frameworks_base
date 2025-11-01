@@ -14,239 +14,231 @@
  * limitations under the License.
  */
 
- package com.android.systemui.media.ui.compose
+package com.android.systemui.media.ui.compose
 
- import android.content.Context
- import android.content.Intent
- import androidx.compose.animation.core.animateDpAsState
- import androidx.compose.animation.core.animateFloatAsState
- import androidx.compose.animation.core.tween
- import androidx.compose.foundation.background
- import androidx.compose.foundation.border
- import androidx.compose.foundation.clickable
- import androidx.compose.foundation.layout.*
- import androidx.compose.foundation.shape.RoundedCornerShape
- import androidx.compose.material.icons.Icons
- import androidx.compose.material.icons.filled.PlayArrow
- import androidx.compose.material.icons.filled.Pause
- import androidx.compose.material.icons.filled.SkipNext
- import androidx.compose.material.icons.filled.SkipPrevious
- import androidx.compose.material3.*
- import androidx.compose.runtime.*
- import androidx.compose.ui.Alignment
- import androidx.compose.ui.Modifier
- import androidx.compose.ui.draw.clip
- import androidx.compose.ui.graphics.Color
- import androidx.compose.ui.graphics.graphicsLayer
- import androidx.compose.ui.platform.LocalContext
- import androidx.compose.ui.text.style.TextOverflow
- import androidx.compose.ui.unit.dp
- import androidx.compose.ui.unit.sp
- import androidx.lifecycle.compose.collectAsStateWithLifecycle
- import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
+import com.android.systemui.res.R
 
- @Composable
- fun MiniPlayerCompact(
-     viewModel: MiniPlayerViewModel,
-     compact: Boolean = true,
-     expansionProgress: Float = if (compact) 0f else 1f,
-                       modifier: Modifier = Modifier
- ) {
-     val context = LocalContext.current
-     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
+@Composable
+fun MiniPlayerCompact(
+    viewModel: MiniPlayerViewModel,
+    compact: Boolean = true,
+    expansionProgress: Float = if (compact) 0f else 1f,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
 
-     val animatedHeight by animateDpAsState(
-         targetValue = if (compact) 70.dp else 85.dp,
-                                            animationSpec = tween(
-                                                durationMillis = 300,
-                                                delayMillis = 0
-                                            ),
-                                            label = "player_height"
-     )
+    val animatedHeight by animateDpAsState(
+        targetValue = 70.dp,
+        animationSpec = tween(durationMillis = 300, delayMillis = 0),
+        label = "player_height"
+    )
 
-     val alpha by animateFloatAsState(
-         targetValue = when {
-             compact && expansionProgress < 0.35f -> 1f - (expansionProgress / 0.35f)
-             !compact && expansionProgress > 0.75f -> (expansionProgress - 0.75f) / 0.35f
-             compact && expansionProgress >= 0.35f -> 0f
-             !compact && expansionProgress <= 0.75f -> 0f
-             else -> 1f
-         },
-         animationSpec = tween(
-             durationMillis = 200,
-             delayMillis = 0
-         ),
-         label = "player_alpha"
-             )
+    val alpha by animateFloatAsState(
+        targetValue = when {
+            compact && expansionProgress < 0.35f -> 1f - (expansionProgress / 0.35f)
+            !compact && expansionProgress > 0.75f -> (expansionProgress - 0.75f) / 0.35f
+            compact && expansionProgress >= 0.35f -> 0f
+            !compact && expansionProgress <= 0.75f -> 0f
+            else -> 1f
+        },
+        animationSpec = tween(durationMillis = 200, delayMillis = 0),
+        label = "player_alpha"
+    )
 
-             val offsetY by animateFloatAsState(
-                 targetValue = when {
-                     compact -> expansionProgress * 120f
-                     else -> 0f
-                 },
-                 animationSpec = tween(
-                     durationMillis = 300,
-                     delayMillis = 0
-                 ),
-                 label = "player_offset"
-             )
+    val offsetY by animateFloatAsState(
+        targetValue = when {
+            compact -> expansionProgress * 120f
+            else -> 0f
+        },
+        animationSpec = tween(durationMillis = 300, delayMillis = 0),
+        label = "player_offset"
+    )
 
-             // background
-             val bgColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f)
+    val bgColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f)
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+    val contentAlpha = if (mediaState.hasActiveMedia) 1f else 0.7f
+    val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+    val shape = RoundedCornerShape(28.dp)
 
-             // Border colors
-             val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+    val isInteractive = alpha > 0.5f && (
+        (compact && expansionProgress < 0.35f) || 
+        (!compact && expansionProgress > 0.75f)
+    )
 
-             // itens Colors
-             val contentAlpha = if (mediaState.hasActiveMedia) 1f else 0.7f
-             val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
-             val iconTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(animatedHeight)
+            .graphicsLayer {
+                this.alpha = alpha
+                this.translationY = offsetY
+            }
+            .then(
+                if (isInteractive) {
+                    Modifier.clickable {
+                        if (mediaState.hasActiveMedia && mediaState.packageName != null) {
+                            openMediaApp(context, mediaState.packageName!!)
+                        } else {
+                            launchDefaultPlayer(context)
+                        }
+                    }
+                } else {
+                    Modifier
+                }
+            ),
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(shape)
+                .background(color = bgColor)
+                .border(width = 1.dp, color = borderColor, shape = shape)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = mediaState.title,
+                        color = textColor,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 14.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = mediaState.artist,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = contentAlpha * 0.8f
+                        ),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-             val shape = RoundedCornerShape(28.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(
+                        enabled = mediaState.hasActiveMedia && isInteractive,
+                        onClick = { viewModel.skipToPrevious() },
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.SkipPrevious,
+                            contentDescription = stringResource(R.string.media_control_previous),
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
-             Surface(
-                 modifier = modifier
-                 .fillMaxWidth()
-                 .height(animatedHeight)
-                 .graphicsLayer {
-                     this.alpha = alpha
-                     this.translationY = offsetY
-                 }
-                 .clickable {
-                     if (mediaState.hasActiveMedia && mediaState.packageName != null) {
-                         openMediaApp(context, mediaState.packageName!!)
-                     } else {
-                         launchDefaultPlayer(context)
-                     }
-                 },
-                 color = Color.Transparent
-             ) {
-                 // background with border
-                 Box(
-                     modifier = Modifier
-                     .fillMaxSize()
-                     .clip(shape)
-                     .background(color = bgColor)
-                     .border(
-                         width = 1.dp,
-                         color = borderColor,
-                         shape = shape
-                     )
-                     .padding(
-                         horizontal = 16.dp,
-                         vertical = if (compact) 12.dp else 14.dp
-                     )
-                 ) {
-                     Row(
-                         modifier = Modifier.fillMaxWidth(),
-                         verticalAlignment = Alignment.CenterVertically,
-                         horizontalArrangement = Arrangement.SpaceBetween
-                     ) {
-                         // Title and artist
-                         Column(
-                             modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.Center
-                         ) {
-                             Text(
-                                 text = mediaState.title,
-                                  color = textColor,
-                                  style = MaterialTheme.typography.bodyLarge.copy(
-                                      fontSize = if (compact) 14.sp else 16.sp
-                                  ),
-                                  maxLines = 1,
-                                  overflow = TextOverflow.Ellipsis
-                             )
-                             Spacer(modifier = Modifier.height(2.dp))
-                             Text(
-                                 text = mediaState.artist,
-                                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                      alpha = contentAlpha * 0.8f
-                                  ),
-                                  style = MaterialTheme.typography.bodyMedium.copy(
-                                      fontSize = 12.sp
-                                  ),
-                                  maxLines = 1,
-                                  overflow = TextOverflow.Ellipsis
-                             )
-                         }
+                    FilledTonalIconButton(
+                        onClick = {
+                            if (mediaState.hasActiveMedia) {
+                                viewModel.playPause()
+                            } else {
+                                launchDefaultPlayer(context)
+                            }
+                        },
+                        enabled = isInteractive,
+                        modifier = Modifier.size(44.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 1f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (mediaState.isPlaying) {
+                                Icons.Default.Pause
+                            } else {
+                                Icons.Default.PlayArrow
+                            },
+                            contentDescription = stringResource(R.string.media_control_play_pause),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
-                         // Media Controls
-                         Row(
-                             verticalAlignment = Alignment.CenterVertically,
-                             horizontalArrangement = Arrangement.spacedBy(2.dp)
-                         ) {
-                             IconButton(
-                                 enabled = mediaState.hasActiveMedia,
-                                 onClick = { viewModel.skipToPrevious() },
-                                        modifier = Modifier.size(if (compact) 44.dp else 48.dp)
-                             ) {
-                                 Icon(
-                                     Icons.Default.SkipPrevious,
-                                      contentDescription = "Previous",
-                                      tint = iconTint,
-                                      modifier = Modifier.size(if (compact) 24.dp else 28.dp)
-                                 )
-                             }
+                    IconButton(
+                        enabled = mediaState.hasActiveMedia && isInteractive,
+                        onClick = { viewModel.skipToNext() },
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.SkipNext,
+                            contentDescription = stringResource(R.string.media_control_next),
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
-                             FilledTonalIconButton(
-                                 onClick = {
-                                     if (mediaState.hasActiveMedia) {
-                                         viewModel.playPause()
-                                     } else {
-                                         launchDefaultPlayer(context)
-                                     }
-                                 },
-                                 modifier = Modifier.size(if (compact) 44.dp else 48.dp),
-                                                   colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                                       containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
-                                                           alpha = 1f
-                                                       )
-                                                   )
-                             ) {
-                                 Icon(
-                                     imageVector = if (mediaState.isPlaying) {
-                                         Icons.Default.Pause
-                                     } else {
-                                         Icons.Default.PlayArrow
-                                     },
-                                      contentDescription = "Play/Pause",
-                                      tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                      modifier = Modifier.size(if (compact) 24.dp else 28.dp)
-                                 )
-                             }
+private fun openMediaApp(context: Context, pkg: String) {
+    runCatching {
+        val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+        intent?.let {
+            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(it)
+        }
+    }.onFailure { e ->
+        Log.e("MiniPlayer", "Failed to launch media app: $pkg", e)
+    }
+}
 
-                             IconButton(
-                                 enabled = mediaState.hasActiveMedia,
-                                 onClick = { viewModel.skipToNext() },
-                                        modifier = Modifier.size(if (compact) 44.dp else 48.dp)
-                             ) {
-                                 Icon(
-                                     Icons.Default.SkipNext,
-                                      contentDescription = "Next",
-                                      tint = iconTint,
-                                      modifier = Modifier.size(if (compact) 24.dp else 28.dp)
-                                 )
-                             }
-                         }
-                     }
-                 }
-             }
- }
-
- private fun openMediaApp(context: Context, pkg: String) {
-     runCatching {
-         val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-         intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-         context.startActivity(intent)
-     }
- }
-
- private fun launchDefaultPlayer(context: Context) {
-     runCatching {
-         val intent = Intent(Intent.ACTION_MAIN).apply {
-             addCategory(Intent.CATEGORY_APP_MUSIC)
-             flags = Intent.FLAG_ACTIVITY_NEW_TASK
-         }
-         context.startActivity(intent)
-     }
- }
+private fun launchDefaultPlayer(context: Context) {
+    runCatching {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_APP_MUSIC)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
+    }.onFailure { e ->
+        Log.e("MiniPlayer", "Failed to launch default player", e)
+    }
+}
