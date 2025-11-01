@@ -16,119 +16,260 @@
 
 package com.android.systemui;
 
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlarmManager;
-import android.app.AlarmManager.AlarmClockInfo;
-import android.app.UiModeManager;
-import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Handler;
-import android.os.SystemProperties;
-import android.provider.Settings;
+import android.os.Looper;
 import android.util.Log;
 
-import com.android.systemui.Dependency;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class ArcaneIdleManager {
-    static String TAG = "ArcaneIdleManager";
+    private static final String TAG = "ArcaneIdleManager";
+    private static final long IDLE_TIME_NEEDED = TimeUnit.HOURS.toMillis(1); // 1 hour
+    private static final long ALARM_BUFFER_TIME = TimeUnit.MINUTES.toMillis(15); // 15 minutes
+    private static final long MIN_DELAY = 100; // Minimum delay in ms
 
-    static Handler h = new Handler();
-    static Runnable rStateTwo;
-    static Runnable rStateThree;
-    static List<ActivityManager.RunningAppProcessInfo> RunningServices;
-    static ActivityManager localActivityManager;
-    static Context imContext;
-    static ContentResolver mContentResolver;
-    static List<String> killablePackages;
-    static final long IDLE_TIME_NEEDED = 4000000;
-    static int ultraSaverStatus;
+    private static Set<String> PROTECTED_PACKAGE_PATTERNS = new HashSet<>(Arrays.asList(
+        ".android",
+        "android",
+        ".settings",
+        ".google",
+        ".mgoogle",
+        "gms",
+        ".GoogleCamera",
+        ".whatsapp",
+        ".telegram",
+        ".dialer",
+        ".phone",
+        ".contacts",
+        ".messaging",
+        ".mms",
+        ".ims",
+        ".launcher",
+        ".systemui",
+        ".inputmethod",
+        ".keyboard",
+        ".camera",
+        ".gallery",
+        ".photos",
+        ".music",
+        ".security",
+        ".faceunlock",
+        ".gamespace",
+        ".gamebar",
+        ".dolby",
+        ".glyph",
+        ".miui",
+        ".oneplus",
+        ".samsung",
+        ".xiaomi",
+        ".nfc",
+        ".bluetooth",
+        ".location",
+        ".provider",
+        ".zhihu",
+        ".ugc"
+    ));
 
-    public static void initManager(Context mContext) {
-        imContext = mContext;
-        killablePackages = new ArrayList<>();
-        localActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
-        mContentResolver = mContext.getContentResolver();
+    private final Context mContext;
+    private final Handler mHandler;
+    private final ActivityManager mActivityManager;
+    private final AlarmManager mAlarmManager;
 
-        rStateTwo = new Runnable() {
-            public void run() {
-                    servicesKiller();
+    private Runnable mServiceKillerRunnable;
+    private Runnable mHaltManagerRunnable;
+
+    private static volatile ArcaneIdleManager sInstance;
+    private static final Object sLock = new Object();
+
+    private boolean mIsExecuting = false;
+
+    private ArcaneIdleManager(@NonNull Context context) {
+        this.mContext = context.getApplicationContext();
+        this.mHandler = new Handler(Looper.getMainLooper());
+        this.mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        this.mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        initializeRunnables();
+    }
+
+    public static void initManager(@NonNull Context context) {
+        if (sInstance == null) {
+            synchronized (sLock) {
+                if (sInstance == null) {
+                    sInstance = new ArcaneIdleManager(context);
+                }
             }
-        };
-        rStateThree = new Runnable() {
-            public void run() {
-                haltManager();
-            }
-        };
-    }
-
-    public static void executeManager() {
-        String TAG_SUBCLASS = "executeManager ";
-        RunningServices = localActivityManager.getRunningAppProcesses();
-
-        if (IDLE_TIME_NEEDED > msTillAlarm(imContext) && msTillAlarm(imContext) != 0) {
-            h.postDelayed(rStateTwo,100);
-        } else {
-            h.postDelayed(rStateTwo,IDLE_TIME_NEEDED /*1hr*/);
-        }
-        if (msTillAlarm(imContext) != 0) {
-            h.postDelayed(rStateThree,(msTillAlarm(imContext) - 900000));
         }
     }
 
-    public static void haltManager() {
-        String TAG_SUBCLASS = "haltManager";
-        h.removeCallbacks(rStateTwo);
-        theAwakening();
+    @Nullable
+    public static ArcaneIdleManager getInstance() {
+        return sInstance;
     }
 
-    public static void theAwakening() {
-        String TAG_SUBCLASS = "theAwakening";
-        h.removeCallbacks(rStateThree);
+    private void initializeRunnables() {
+        mServiceKillerRunnable = this::killBackgroundServices;
+        mHaltManagerRunnable = this::haltManager;
     }
 
-    public static long msTillAlarm(Context imContext) {
-        String TAG_SUBCLASS = "msTillAlarm";
-        AlarmManager.AlarmClockInfo info =
-                ((AlarmManager)imContext.getSystemService(Context.ALARM_SERVICE)).getNextAlarmClock();
-        if (info != null) {
-            long alarmTime = info.getTriggerTime();
-            long realTime = alarmTime - System.currentTimeMillis();
-            return realTime;
+    public void executeManager() {
+        if (mActivityManager == null || mAlarmManager == null) {
+            Log.e(TAG, "Required system services not available");
+            return;
+        }
+
+        if (mIsExecuting) {
+            Log.d(TAG, "Manager already executing, skipping duplicate execution");
+            return;
+        }
+
+        mIsExecuting = true;
+        cancelPendingCallbacks();
+
+        long timeUntilAlarm = getMillisecondsUntilNextAlarm();
+        long delayForServiceKiller;
+
+        if (timeUntilAlarm > 0 && timeUntilAlarm < IDLE_TIME_NEEDED) {
+            delayForServiceKiller = MIN_DELAY;
+            Log.d(TAG, "Alarm in " + timeUntilAlarm + "ms, scheduling immediate service kill");
         } else {
+            delayForServiceKiller = IDLE_TIME_NEEDED;
+            Log.d(TAG, "No imminent alarm, scheduling service kill after " + 
+                  TimeUnit.MILLISECONDS.toMinutes(IDLE_TIME_NEEDED) + " minutes");
+        }
+
+        mHandler.postDelayed(mServiceKillerRunnable, delayForServiceKiller);
+
+        if (timeUntilAlarm > ALARM_BUFFER_TIME) {
+            long haltDelay = timeUntilAlarm - ALARM_BUFFER_TIME;
+            mHandler.postDelayed(mHaltManagerRunnable, haltDelay);
+            Log.d(TAG, "Scheduling halt " + TimeUnit.MILLISECONDS.toMinutes(ALARM_BUFFER_TIME) + 
+                  " minutes before alarm");
+        }
+    }
+
+    public void haltManager() {
+        Log.d(TAG, "Halting manager");
+        cancelPendingCallbacks();
+        mIsExecuting = false;
+    }
+
+    private void cancelPendingCallbacks() {
+        if (mHandler != null && mServiceKillerRunnable != null && mHaltManagerRunnable != null) {
+            mHandler.removeCallbacks(mServiceKillerRunnable);
+            mHandler.removeCallbacks(mHaltManagerRunnable);
+        }
+    }
+
+    private long getMillisecondsUntilNextAlarm() {
+        if (mAlarmManager == null) {
             return 0;
         }
+
+        try {
+            AlarmManager.AlarmClockInfo alarmInfo = mAlarmManager.getNextAlarmClock();
+            if (alarmInfo != null) {
+                long alarmTime = alarmInfo.getTriggerTime();
+                long currentTime = System.currentTimeMillis();
+                long timeUntilAlarm = alarmTime - currentTime;
+                return Math.max(0, timeUntilAlarm);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting next alarm", e);
+        }
+
+        return 0;
     }
 
-    public static void servicesKiller() {
-        String TAG_SUBCLASS = "servicesKiller";
-        localActivityManager = (ActivityManager) imContext.getSystemService(Context.ACTIVITY_SERVICE);
-        RunningServices = localActivityManager.getRunningAppProcesses();
-        for (int i=0; i < RunningServices.size(); i++) {
-          if (!RunningServices.get(i).pkgList[0].toString().contains(".android") &&
-          	    !RunningServices.get(i).pkgList[0].toString().equals("android") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".google") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".mgoogle") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".zhihu") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".ugc") &&
-                !RunningServices.get(i).pkgList[0].toString().contains("gms") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".settings") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".GoogleCamera") &&
-		        !RunningServices.get(i).pkgList[0].toString().contains(".gamespace") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".dolby.xiaomi") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".whatsapp") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".dialer") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".glyph") &&
-                !RunningServices.get(i).pkgList[0].toString().contains(".ims")) {
-                    localActivityManager.killBackgroundProcesses(RunningServices.get(i).pkgList[0].toString());
+    private void killBackgroundServices() {
+        if (mActivityManager == null) {
+            Log.e(TAG, "ActivityManager not available");
+            mIsExecuting = false;
+            return;
+        }
+
+        List<ActivityManager.RunningAppProcessInfo> runningProcesses;
+        try {
+            runningProcesses = mActivityManager.getRunningAppProcesses();
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting running processes", e);
+            mIsExecuting = false;
+            return;
+        }
+
+        if (runningProcesses == null || runningProcesses.isEmpty()) {
+            Log.d(TAG, "No running processes found");
+            mIsExecuting = false;
+            return;
+        }
+
+        int killedCount = 0;
+        int protectedCount = 0;
+
+        for (ActivityManager.RunningAppProcessInfo processInfo : runningProcesses) {
+            if (processInfo.pkgList == null || processInfo.pkgList.length == 0) {
+                continue;
             }
+
+            String packageName = processInfo.pkgList[0];
+            
+            if (shouldKillProcess(packageName)) {
+                try {
+                    mActivityManager.killBackgroundProcesses(packageName);
+                    killedCount++;
+                    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                        Log.v(TAG, "Killed background process: " + packageName);
+                    }
+                } catch (SecurityException e) {
+                    Log.w(TAG, "No permission to kill process: " + packageName);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to kill process: " + packageName, e);
+                }
+            } else {
+                protectedCount++;
+            }
+        }
+
+        Log.i(TAG, "Process cleanup complete: " + killedCount + " killed, " + 
+              protectedCount + " protected");
+        mIsExecuting = false;
+    }
+
+    private boolean shouldKillProcess(@NonNull String packageName) {
+        for (String pattern : PROTECTED_PACKAGE_PATTERNS) {
+            if (packageName.contains(pattern)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void cleanup() {
+        haltManager();
+        synchronized (sLock) {
+            sInstance = null;
         }
     }
 
+    public boolean isExecuting() {
+        return mIsExecuting;
+    }
+
+    public static void addProtectedPattern(@NonNull String pattern) {
+        PROTECTED_PACKAGE_PATTERNS.add(pattern);
+    }
+
+    public static void removeProtectedPattern(@NonNull String pattern) {
+        PROTECTED_PACKAGE_PATTERNS.remove(pattern);
+    }
 }

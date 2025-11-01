@@ -2891,14 +2891,15 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
 
             DejankUtils.stopDetectingBlockingIpcs(tag);
             if (Settings.System.getIntForUser(mContext.getContentResolver(),
-                                              Settings.System.ARCANE_IDLE_MANAGER, 1,
-                                              mLockscreenUserManager.getCurrentUserId()) == 1) {
+                                            Settings.System.ARCANE_IDLE_MANAGER, 1,
+                                            mLockscreenUserManager.getCurrentUserId()) == 1) {
                 if (!isIdleManagerIstantiated) {
                     ArcaneIdleManager.initManager(mContext);
                     isIdleManagerIstantiated = true;
-                    ArcaneIdleManager.executeManager();
-                } else {
-                    ArcaneIdleManager.executeManager();
+                }
+                ArcaneIdleManager instance = ArcaneIdleManager.getInstance();
+                if (instance != null) {
+                    instance.executeManager();
                 }
             }
         }
@@ -2930,9 +2931,12 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
             });
             DejankUtils.stopDetectingBlockingIpcs(tag);
             if (Settings.System.getIntForUser(mContext.getContentResolver(),
-                                              Settings.System.ARCANE_IDLE_MANAGER, 1,
-                                              mLockscreenUserManager.getCurrentUserId()) == 1) {
-                ArcaneIdleManager.haltManager();
+                                            Settings.System.ARCANE_IDLE_MANAGER, 1,
+                                            mLockscreenUserManager.getCurrentUserId()) == 1) {
+                ArcaneIdleManager instance = ArcaneIdleManager.getInstance();
+                if (instance != null) {
+                    instance.haltManager();
+                }
             }
         }
         
