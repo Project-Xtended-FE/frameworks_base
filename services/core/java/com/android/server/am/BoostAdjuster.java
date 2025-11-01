@@ -691,7 +691,7 @@ public class BoostAdjuster implements IBoostAdjuster {
                         && !pr.getProcessName().contains("webview")
                         && (!homeContains || !pr.getProcessName().equals("com.google.android.googlequicksearchbox:search"))) {
                     int curAdj = pr.getCurAdj();
-                    if (pr.getUid() > 10000 && curAdj >= 250 && curAdj != 600 && curAdj != 700 && curAdj < 900) {
+                    if (pr.getUid() > 10000 && curAdj >= 950) {
                         logger("AnimationFreeze: freeze package: " + pr.getProcessName());
                         freezeList.add(pr);
                     }
