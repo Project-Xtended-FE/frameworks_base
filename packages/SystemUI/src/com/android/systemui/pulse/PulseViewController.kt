@@ -22,6 +22,8 @@ import com.android.systemui.media.MediaSessionManager
 import com.android.systemui.util.ScrimUtils
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -58,6 +60,14 @@ class PulseViewController @Inject constructor(
             updatePulseDisplay(value)
         }
 
+    private var showDelayJob: Job? = null
+    private var hideDelayJob: Job? = null
+    
+    private val PULSE_SHOW_DELAY_MS = 300L
+    private val PULSE_HIDE_DELAY_MS = 100L
+    private val PULSE_FADE_IN_DURATION_MS = 200L
+    private val PULSE_FADE_OUT_DURATION_MS = 150L
+
     init {
         ScrimUtils.get().addListener(this)
         MediaSessionManager.get().addListener(this)
@@ -66,16 +76,36 @@ class PulseViewController @Inject constructor(
     fun getPulseView(): PulseView = pulseView
 
     private fun updatePulseState() {
-        pulseRunning = shouldShowPulse
+        val shouldShow = shouldShowPulse
+        showDelayJob?.cancel()
+        hideDelayJob?.cancel()
+        
+        if (shouldShow && !pulseRunning) {
+            showDelayJob = mainScope.launch {
+                delay(PULSE_SHOW_DELAY_MS)
+                if (shouldShowPulse && !pulseRunning) {
+                    pulseRunning = true
+                }
+            }
+        } else if (!shouldShow && pulseRunning) {
+            hideDelayJob = mainScope.launch {
+                delay(PULSE_HIDE_DELAY_MS)
+                if (!shouldShowPulse && pulseRunning) {
+                    pulseRunning = false
+                }
+            }
+        }
     }
 
     private fun updatePulseDisplay(show: Boolean) {
         mainScope.launch {
-            pulseView.setVisibility(show)
             if (show) {
                 audioProcessor.startCapture()
+                pulseView.fadeIn(PULSE_FADE_IN_DURATION_MS)
             } else {
-                audioProcessor.stopCapture()
+                pulseView.fadeOut(PULSE_FADE_OUT_DURATION_MS) {
+                    audioProcessor.stopCapture()
+                }
             }
         }
     }
@@ -125,14 +155,20 @@ class PulseViewController @Inject constructor(
     }
 
     override fun onKeyguardFadingAwayChanged(fadingAway: Boolean) {
+        showDelayJob?.cancel()
+        hideDelayJob?.cancel()
         pulseRunning = false
     }
 
     override fun onKeyguardGoingAwayChanged(goingAway: Boolean) {
+        showDelayJob?.cancel()
+        hideDelayJob?.cancel()
         pulseRunning = false
     }
 
     override fun onScreenTurnedOff() {
+        showDelayJob?.cancel()
+        hideDelayJob?.cancel()
         pulseRunning = false
     }
 
@@ -149,6 +185,8 @@ class PulseViewController @Inject constructor(
     }
 
     fun destroy() {
+        showDelayJob?.cancel()
+        hideDelayJob?.cancel()
         mainScope.cancel()
         settingsRepository.stopObserving()
         ScrimUtils.get().removeListener(this)
