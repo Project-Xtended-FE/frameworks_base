@@ -128,7 +128,7 @@ public class ProcessManager implements IProcessManager {
         }
         mLastReleaseTime = now;
         logger("ProcessManager: Performing thermal mitigation: releasing memory");
-        mActivityManagerService.releaseMemory(900, 20, false, false);
+        mActivityManagerService.releaseMemory(950, 20, false, false);
     }
 
     public void systemReady() {
