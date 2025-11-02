@@ -700,12 +700,15 @@ constructor(
                         val expansionProgress by remember {
                             derivedStateOf { viewModel.expansionState.progress }
                         }
-                        MiniPlayerCompact(
-                            viewModel = miniPlayerViewModel,
-                            compact = true,
-                            expansionProgress = expansionProgress,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        val shouldShow by miniPlayerViewModel.shouldShowPlayer.collectAsStateWithLifecycle()
+                        if (shouldShow) {
+                            MiniPlayerCompact(
+                                viewModel = miniPlayerViewModel,
+                                compact = true,
+                                expansionProgress = expansionProgress,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
 
@@ -827,12 +830,15 @@ constructor(
                                 val expansionProgress by remember {
                                     derivedStateOf { viewModel.expansionState.progress }
                                 }
-                                MiniPlayerCompact(
-                                    viewModel = miniPlayerViewModel,
-                                    compact = false,
-                                    expansionProgress = expansionProgress,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                val shouldShow by miniPlayerViewModel.shouldShowPlayer.collectAsStateWithLifecycle()
+                                if (shouldShow) {
+                                    MiniPlayerCompact(
+                                        viewModel = miniPlayerViewModel,
+                                        compact = false,
+                                        expansionProgress = expansionProgress,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                         Box(
