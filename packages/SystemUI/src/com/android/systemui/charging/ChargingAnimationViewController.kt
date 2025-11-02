@@ -215,7 +215,7 @@ constructor(
         updateVisibility()
     }
 
-    override fun onDozingChanged() {
+    override fun onDozingChanged(dozing: Boolean) {
         try {
             isDozing = ScrimUtils.get()?.isDozing() ?: false
         } catch (e: Exception) {

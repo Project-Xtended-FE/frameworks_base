@@ -179,7 +179,7 @@ class PulseViewController @Inject constructor(
         mainScope.launch { updatePulseState() }
     }
 
-    override fun onDozingChanged() {
+    override fun onDozingChanged(dozing: Boolean) {
         mainScope.launch { updatePulseState() }
     }
 
