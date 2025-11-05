@@ -14592,6 +14592,11 @@ public final class Settings {
         public static final String MEDIA_CONTROLS_ALWAYS_SHOW_TIME = "media_controls_always_show_time";
 
         /**
+         * @hide
+         */
+        public static final String DOZE_SCREEN_STATE_FIX = "doze_screen_state_fix";
+
+        /**
          * Toggle for whether to redact OTP notification while connected to wifi. Defaults to
          * false/0.
          * @hide

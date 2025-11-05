@@ -17,10 +17,13 @@
 package com.android.systemui.doze
 
 import android.content.Context
+import android.database.ContentObserver
 import android.hardware.display.DisplayManager
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemProperties
+import android.provider.Settings
 import android.util.Log
 import android.view.Display
 import com.android.systemui.Dependency
@@ -45,6 +48,8 @@ class DozeScreenStateEx @Inject constructor(
         private const val TAG = "DozeScreenStateEx"
         @JvmField
         val SUSPEND_DELAY_TIME = SystemProperties.getInt("persist.sys.doze_suspend_duration", 3000)
+        
+        private const val DOZE_SCREEN_STATE_FIX = "doze_screen_state_fix"
 
         @JvmStatic
         fun get(): DozeScreenStateEx {
@@ -60,12 +65,20 @@ class DozeScreenStateEx @Inject constructor(
     private var unlockAnimPlaying: Boolean = false
     private var curState: DozeMachine.State = DozeMachine.State.UNINITIALIZED
     private var screenStateConsumer: Consumer<Int>? = null
+    private var dozeFixEnabled: Boolean = false
+
+    private val settingsObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean, uri: Uri?) {
+            updateDozeFixSetting()
+        }
+    }
 
     private val screenOffAnimationCallback = object : ScreenOffAnimationCallback() {
         override fun onAnimationEnd() {
             unlockAnimPlaying = false
             Log.d(TAG, "ScreenOffAnimation animationEnd: $curState, display state: $curDisplayState")
-            if (curState == DozeMachine.State.DOZE_AOD || curState == DozeMachine.State.DOZE_AOD_PAUSING) {
+            if (dozeFixEnabled && (curState == DozeMachine.State.DOZE_AOD 
+                    || curState == DozeMachine.State.DOZE_AOD_PAUSING)) {
                 screenStateConsumer?.accept(Display.STATE_DOZE)
             }
         }
@@ -86,6 +99,21 @@ class DozeScreenStateEx @Inject constructor(
     init {
         curDisplayState = displayManager.getDisplay(0).committedState
         displayTracker.addCommittedStateChangeCallback(displayCallback, executor)
+        updateDozeFixSetting()
+        context.contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(DOZE_SCREEN_STATE_FIX),
+            false,
+            settingsObserver
+        )
+    }
+
+    private fun updateDozeFixSetting() {
+        dozeFixEnabled = Settings.Secure.getInt(
+            context.contentResolver,
+            DOZE_SCREEN_STATE_FIX,
+            0
+        ) == 1
+        Log.d(TAG, "Doze fix enabled: $dozeFixEnabled")
     }
 
     fun init(consumer: Consumer<Int>) {
@@ -108,6 +136,7 @@ class DozeScreenStateEx @Inject constructor(
             DozeMachine.State.FINISH -> {
                 UnlockedScreenOffAnimationControllerExt.removeCallback(screenOffAnimationCallback)
                 screenStateConsumer = null
+                context.contentResolver.unregisterContentObserver(settingsObserver)
             }
             else -> {}
         }
