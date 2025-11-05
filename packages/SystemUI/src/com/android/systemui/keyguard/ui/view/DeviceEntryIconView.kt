@@ -62,6 +62,7 @@ constructor(
     val iconView: ImageView = ImageView(context, attrs).apply { id = R.id.device_entry_icon_fg }
     val bgView: ImageView = ImageView(context, attrs).apply { id = R.id.device_entry_icon_bg }
     val aodFpDrawable: LottieDrawable = LottieDrawable()
+    val aodstockFpDrawable: LottieDrawable = LottieDrawable()
     var accessibilityHintType: AccessibilityHintType = AccessibilityHintType.NONE
 
     private var animatedIconDrawable: AnimatedStateListDrawable = AnimatedStateListDrawable()
@@ -187,9 +188,12 @@ constructor(
             R.id.unlocked_aod,
         )
         // FINGERPRINT
+        LottieCompositionFactory.fromRawRes(mContext, R.raw.udfps_aod_fp).addListener { result ->
+            aodstockFpDrawable.setComposition(result)
+        }
         animatedIconDrawable.addState(
             getIconState(IconType.FINGERPRINT, true),
-            aodFpDrawable,
+            aodstockFpDrawable,
             R.id.udfps_aod_fp,
         )
 
