@@ -41,6 +41,7 @@ import com.android.systemui.lifecycle.repeatWhenAttached
 import com.android.systemui.shade.ShadeLogger
 import com.android.systemui.shade.domain.interactor.ShadeInteractor
 import com.android.systemui.util.ViewController
+import com.android.systemui.util.time.BangabdaCalendarUtil
 import com.android.systemui.util.time.ChineseLunarCalendarUtil
 import com.android.systemui.util.time.IndianSakaCalendarUtil
 import com.android.systemui.util.time.SystemClock
@@ -91,6 +92,7 @@ private const val TAG = "VariableDateViewController"
 private const val CALENDAR_TYPE_DEFAULT = "0"
 private const val CALENDAR_TYPE_LUNAR = "1"
 private const val CALENDAR_TYPE_SAKA = "2"
+private const val CALENDAR_TYPE_BANGABDA = "3"
 
 class VariableDateViewController(
     private val systemClock: SystemClock,
@@ -272,7 +274,7 @@ class VariableDateViewController(
 
     private fun getDisplayTextForFormat(format: DateFormat): String {
         val baseText = getTextForFormat(currentTime, format)
-        
+
         return when (calendarType) {
             CALENDAR_TYPE_LUNAR -> {
                 val lunarText = ChineseLunarCalendarUtil.getLunarDateString()
@@ -282,7 +284,16 @@ class VariableDateViewController(
                 val sakaText = IndianSakaCalendarUtil.getSakaDateString()
                 if (baseText.isEmpty()) sakaText else "$baseText $sakaText"
             }
-            else -> baseText // CALENDAR_TYPE_DEFAULT
+            CALENDAR_TYPE_BANGABDA -> {
+                val bangabdaText = BangabdaCalendarUtil.getBangabdaDateString(
+                    BangabdaCalendarUtil.FLAG_INCLUDE_DATE or
+                    BangabdaCalendarUtil.FLAG_INCLUDE_MONTH or
+                    BangabdaCalendarUtil.FLAG_INCLUDE_YEAR or
+                    BangabdaCalendarUtil.FLAG_USE_BENGALI_DIGITS
+                )
+                if (baseText.isEmpty()) bangabdaText else "$baseText $bangabdaText"
+            }
+            else -> baseText
         }
     }
 
