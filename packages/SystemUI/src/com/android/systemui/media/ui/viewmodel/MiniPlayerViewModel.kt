@@ -73,6 +73,12 @@ class MiniPlayerViewModel @AssistedInject constructor(
         override fun onMetadataChanged(metadata: android.media.MediaMetadata?) {
             updateMediaState()
         }
+
+        override fun onSessionDestroyed() {
+            activeController?.unregisterCallback(this)
+            activeController = null
+            updateMediaState()
+        }
     }
 
     private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -115,7 +121,10 @@ class MiniPlayerViewModel @AssistedInject constructor(
     private fun updateActiveController(controllers: MutableList<MediaController>?) {
         activeController?.unregisterCallback(controllerCallback)
 
-        activeController = controllers?.firstOrNull()
+        activeController = controllers?.firstOrNull { controller ->
+            val state = controller.playbackState?.state
+            state != null && state != PlaybackState.STATE_NONE && state != PlaybackState.STATE_STOPPED
+        }
 
         activeController?.registerCallback(controllerCallback)
 
@@ -127,16 +136,26 @@ class MiniPlayerViewModel @AssistedInject constructor(
         if (controller != null) {
             val metadata = controller.metadata
             val playbackState = controller.playbackState
+            val state = playbackState?.state
 
-            _mediaState.value = MediaState(
-                title = metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
-                    ?: context.getString(R.string.media_unknown_track),
-                artist = metadata?.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST)
-                    ?: context.getString(R.string.media_unknown_artist),
-                isPlaying = playbackState?.state == PlaybackState.STATE_PLAYING,
-                hasActiveMedia = true,
-                packageName = controller.packageName
-            )
+            val isValidState = state != null && 
+                state != PlaybackState.STATE_NONE && 
+                state != PlaybackState.STATE_STOPPED &&
+                state != PlaybackState.STATE_ERROR
+
+            if (isValidState && metadata != null) {
+                _mediaState.value = MediaState(
+                    title = metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
+                        ?: context.getString(R.string.media_unknown_track),
+                    artist = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST)
+                        ?: context.getString(R.string.media_unknown_artist),
+                    isPlaying = state == PlaybackState.STATE_PLAYING,
+                    hasActiveMedia = true,
+                    packageName = controller.packageName
+                )
+            } else {
+                _mediaState.value = MediaState()
+            }
         } else {
             _mediaState.value = MediaState()
         }
