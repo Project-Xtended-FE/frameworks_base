@@ -7151,10 +7151,13 @@ public final class Settings {
         public static final String TINT_STATUSBAR_ICONS_WITH_ACCENT = "tint_statusbar_icons_with_accent";
 
         /**
-         * Whether to show Chinese lunar calendar in the quick settings header.
+         * Calendar type to display in Quick Settings
+         * 0 = Default
+         * 1 = Lunar (Chinese)
+         * 2 = Saka (Indian)
          * @hide
          */
-        public static final String QS_SHOW_LUNAR_CALENDAR = "qs_show_lunar_calendar";
+        public static final String QS_CALENDAR_TYPE = "qs_calendar_type";
 
         /**
          * Per-app refresh rate config

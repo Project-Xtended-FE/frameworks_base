@@ -42,6 +42,7 @@ import com.android.systemui.shade.ShadeLogger
 import com.android.systemui.shade.domain.interactor.ShadeInteractor
 import com.android.systemui.util.ViewController
 import com.android.systemui.util.time.ChineseLunarCalendarUtil
+import com.android.systemui.util.time.IndianSakaCalendarUtil
 import com.android.systemui.util.time.SystemClock
 import java.text.FieldPosition
 import java.text.ParsePosition
@@ -87,6 +88,10 @@ private val EMPTY_FORMAT: DateFormat = object : DateFormat() {
 private const val DEBUG = false
 private const val TAG = "VariableDateViewController"
 
+private const val CALENDAR_TYPE_DEFAULT = "0"
+private const val CALENDAR_TYPE_LUNAR = "1"
+private const val CALENDAR_TYPE_SAKA = "2"
+
 class VariableDateViewController(
     private val systemClock: SystemClock,
     private val broadcastDispatcher: BroadcastDispatcher,
@@ -111,14 +116,16 @@ class VariableDateViewController(
     private var lastText = ""
     private var currentTime = Date()
     private val contentResolver = view.context.contentResolver
-    private var showLunarCalendar = isLunarCalendarEnabled()
-    private val lunarCalendarSettingUri =
-        Settings.System.getUriFor(Settings.System.QS_SHOW_LUNAR_CALENDAR)
+    private var calendarType = getCalendarType()
+    
+    private val calendarTypeSettingUri =
+        Settings.System.getUriFor(Settings.System.QS_CALENDAR_TYPE)
+    
     private val settingsObserver =
         object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean, uri: android.net.Uri?) {
-                if (uri == null || uri == lunarCalendarSettingUri) {
-                    updateShowLunarCalendar()
+                if (uri == null || uri == calendarTypeSettingUri) {
+                    updateCalendarType()
                 }
             }
         }
@@ -194,12 +201,12 @@ class VariableDateViewController(
         broadcastDispatcher.registerReceiver(intentReceiver, filter,
                 HandlerExecutor(timeTickHandler), UserHandle.SYSTEM)
         contentResolver.registerContentObserver(
-            lunarCalendarSettingUri,
+            calendarTypeSettingUri,
             false,
             settingsObserver,
             UserHandle.USER_CURRENT
         )
-        updateShowLunarCalendar()
+        updateCalendarType()
         mView.repeatWhenAttached {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 shadeInteractor.qsExpansion.collect(::onQsExpansionFractionChanged)
@@ -265,30 +272,34 @@ class VariableDateViewController(
 
     private fun getDisplayTextForFormat(format: DateFormat): String {
         val baseText = getTextForFormat(currentTime, format)
-        if (!showLunarCalendar) {
-            return baseText
+        
+        return when (calendarType) {
+            CALENDAR_TYPE_LUNAR -> {
+                val lunarText = ChineseLunarCalendarUtil.getLunarDateString()
+                if (baseText.isEmpty()) lunarText else "$baseText $lunarText"
+            }
+            CALENDAR_TYPE_SAKA -> {
+                val sakaText = IndianSakaCalendarUtil.getSakaDateString()
+                if (baseText.isEmpty()) sakaText else "$baseText $sakaText"
+            }
+            else -> baseText // CALENDAR_TYPE_DEFAULT
         }
-        val lunarText = ChineseLunarCalendarUtil.getLunarDateString()
-        if (baseText.isEmpty()) {
-            return lunarText
-        }
-        return "$baseText $lunarText"
     }
 
-    private fun isLunarCalendarEnabled(): Boolean {
-        return Settings.System.getIntForUser(
-                contentResolver,
-                Settings.System.QS_SHOW_LUNAR_CALENDAR,
-                0,
-                UserHandle.USER_CURRENT) == 1
+    private fun getCalendarType(): String {
+        return Settings.System.getStringForUser(
+            contentResolver,
+            Settings.System.QS_CALENDAR_TYPE,
+            UserHandle.USER_CURRENT
+        ) ?: CALENDAR_TYPE_DEFAULT
     }
 
-    private fun updateShowLunarCalendar() {
-        val enabled = isLunarCalendarEnabled()
-        if (enabled == showLunarCalendar) {
+    private fun updateCalendarType() {
+        val newType = getCalendarType()
+        if (newType == calendarType) {
             return
         }
-        showLunarCalendar = enabled
+        calendarType = newType
         lastWidth = Integer.MAX_VALUE
         post(::updateClock)
         post { mView.requestLayout() }
