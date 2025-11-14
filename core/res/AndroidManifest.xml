@@ -872,6 +872,8 @@
     <protected-broadcast android:name="com.android.server.app.AppLockManagerService.APP_LOCK_TIMEOUT" />
     <protected-broadcast android:name="android.app.action.UNLOCK_APP" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- ====================================================================== -->
     <!--                          RUNTIME PERMISSIONS                           -->
     <!-- ====================================================================== -->
