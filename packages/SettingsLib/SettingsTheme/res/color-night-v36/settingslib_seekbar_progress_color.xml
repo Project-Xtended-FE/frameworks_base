@@ -18,5 +18,5 @@
     <!-- Disabled state of seekbar progress -->
     <item android:alpha="?android:attr/primaryContentAlpha" android:color="@color/settingslib_materialColorSurfaceVariant" android:state_enabled="false" />
     <!-- Enabled state of seekbar progress  -->
-    <item android:color="?androidprv:attr/colorAccentSecondary" />
+    <item android:color="?android:attr/colorAccent" />
 </selector>
