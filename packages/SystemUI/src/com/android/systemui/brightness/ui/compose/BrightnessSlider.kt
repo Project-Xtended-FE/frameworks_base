@@ -56,6 +56,7 @@ import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Icon as M3Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
@@ -85,10 +86,12 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -137,6 +140,9 @@ fun BrightnessSlider(
 ) {
     val context = LocalContext.current
     val cr = context.contentResolver
+
+    val layoutDirection = LocalLayoutDirection.current
+    val isRtl = layoutDirection == LayoutDirection.Rtl
 
     val showAutoBrightness = remember {
         try {
@@ -217,99 +223,101 @@ fun BrightnessSlider(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Slider(
-            value = animatedValue,
-            valueRange = floatValueRange,
-            enabled = enabled,
-            colors = colors,
-            onValueChange = {
-                if (enabled) {
-                    if (!overriddenByAppState) {
-                        hapticsViewModel?.onValueChange(it)
-                        value = it.toInt()
-                        onDrag(value)
-                    }
-                }
-            },
-            onValueChangeFinished = {
-                if (enabled) {
-                    if (!overriddenByAppState) {
-                        hapticsViewModel?.onValueChangeEnded()
-                        onStop(value)
-                    }
-                }
-            },
-            modifier = modifier
-                .weight(1f)
-                .sysuiResTag("slider")
-                .clickable(enabled = isRestricted) {
-                    if (restriction is PolicyRestriction.Restricted) {
-                        onRestrictedClick(restriction)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Slider(
+                value = animatedValue,
+                valueRange = floatValueRange,
+                enabled = enabled,
+                colors = colors,
+                onValueChange = {
+                    if (enabled) {
+                        if (!overriddenByAppState) {
+                            hapticsViewModel?.onValueChange(it)
+                            value = it.toInt()
+                            onDrag(value)
+                        }
                     }
                 },
-            interactionSource = interactionSource,
-            thumb = {
-                 Box(modifier = Modifier.size(ThumbSize))
-            },
-            track = { sliderState ->
-                val activeTrackColor = MaterialTheme.colorScheme.primary
-                val inactiveTrackColor = LocalAndroidColorScheme.current.surfaceEffect2
-                val density = LocalDensity.current
-
-                Layout(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(ThumbSize)
-                        .clip(RoundedCornerShape(SliderTrackRoundedCorner)),
-                    content = {
-                        Box(Modifier.background(inactiveTrackColor)) // Inactive track
-                        Box(Modifier
-                                .clip(RoundedCornerShape(SliderTrackRoundedCorner))
-                                .background(activeTrackColor),
-                            contentAlignment = Alignment.CenterEnd
-                        ) { // Active track with icon
-                            Box(
-                                modifier = Modifier.size(ThumbSize),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                M3Icon(
-                                    painter = painter,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(IconSize),
-                                    tint = colors.activeTickColor,
-                                )
-                            }
-                        }
-                    },
-                    measurePolicy = { measurables, constraints ->
-                        val thumbSizePx = density.run { ThumbSize.toPx() }
-                        val width = constraints.maxWidth + thumbSizePx.toInt()
-
-                        val trackWidth = (sliderState.coercedValueAsFraction * constraints.maxWidth.toFloat())
-                            .toInt()
-                        val thumbWidth = if (sliderState.coercedValueAsFraction == 0f) {
-                            thumbSizePx.toInt() - trackWidth
-                        } else {
-                            thumbSizePx.toInt()
-                        }
-                        val activeTrackWidth = trackWidth + thumbWidth
-
-                        val inactiveTrackPlaceable = measurables[0].measure(
-                            Constraints.fixed(width, thumbSizePx.toInt())
-                        )
-
-                        val activeTrackPlaceable = measurables[1].measure(
-                            Constraints.fixed(activeTrackWidth, thumbSizePx.toInt())
-                        )
-
-                        layout(width, thumbSizePx.toInt()) {
-                            inactiveTrackPlaceable.place(0, 0)
-                            activeTrackPlaceable.place(0, 0)
+                onValueChangeFinished = {
+                    if (enabled) {
+                        if (!overriddenByAppState) {
+                            hapticsViewModel?.onValueChangeEnded()
+                            onStop(value)
                         }
                     }
-                )
-            }
-        )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .sysuiResTag("slider")
+                    .clickable(enabled = isRestricted) {
+                        if (restriction is PolicyRestriction.Restricted) {
+                            onRestrictedClick(restriction)
+                        }
+                    },
+                interactionSource = interactionSource,
+                thumb = {
+                    Box(modifier = Modifier.size(ThumbSize))
+                },
+                track = { sliderState ->
+                    val activeTrackColor = MaterialTheme.colorScheme.primary
+                    val inactiveTrackColor = LocalAndroidColorScheme.current.surfaceEffect2
+                    val density = LocalDensity.current
+
+                    Layout(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(ThumbSize)
+                            .clip(RoundedCornerShape(SliderTrackRoundedCorner)),
+                        content = {
+                            Box(Modifier.background(inactiveTrackColor)) // Inactive track
+                            Box(Modifier
+                                    .clip(RoundedCornerShape(SliderTrackRoundedCorner))
+                                    .background(activeTrackColor),
+                                contentAlignment = Alignment.CenterEnd
+                            ) { // Active track with icon
+                                Box(
+                                    modifier = Modifier.size(ThumbSize),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    M3Icon(
+                                        painter = painter,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(IconSize),
+                                        tint = colors.activeTickColor,
+                                    )
+                                }
+                            }
+                        },
+                        measurePolicy = { measurables, constraints ->
+                            val thumbSizePx = density.run { ThumbSize.toPx() }
+                            val width = constraints.maxWidth + thumbSizePx.toInt()
+
+                            val trackWidth = (sliderState.coercedValueAsFraction * constraints.maxWidth.toFloat())
+                                .toInt()
+                            val thumbWidth = if (sliderState.coercedValueAsFraction == 0f) {
+                                thumbSizePx.toInt() - trackWidth
+                            } else {
+                                thumbSizePx.toInt()
+                            }
+                            val activeTrackWidth = trackWidth + thumbWidth
+
+                            val inactiveTrackPlaceable = measurables[0].measure(
+                                Constraints.fixed(width, thumbSizePx.toInt())
+                            )
+
+                            val activeTrackPlaceable = measurables[1].measure(
+                                Constraints.fixed(activeTrackWidth, thumbSizePx.toInt())
+                            )
+
+                            layout(width, thumbSizePx.toInt()) {
+                                inactiveTrackPlaceable.place(0, 0)
+                                activeTrackPlaceable.place(0, 0)
+                            }
+                        }
+                    )
+                }
+            )
+        }
 
         if (hasAutoBrightness && showAutoBrightness) {
             Spacer(modifier = Modifier.width(10.dp))
