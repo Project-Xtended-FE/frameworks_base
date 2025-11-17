@@ -50,6 +50,8 @@ public class BcSmartspaceCard extends ConstraintLayout {
     public int mTopPadding;
     public boolean mUsePageIndicatorUi;
     public boolean mValidSecondaryCard;
+    public TextView mRandomMessageView;
+    private QuickspaceMessagingManager mMessagingManager;
 
     public BcSmartspaceCard(Context context) {
         this(context, null);
@@ -74,6 +76,10 @@ public class BcSmartspaceCard extends ConstraintLayout {
         this.mIconDrawable = new DoubleShadowIconDrawable(context);
         this.mNextAlarmIconDrawable = new DoubleShadowIconDrawable(context);
         this.mDndIconDrawable = new DoubleShadowIconDrawable(context);
+        mMessagingManager = new QuickspaceMessagingManager(context);
+        mMessagingManager.setOnMessageChangedListener(message -> {
+            updateRandomMessage(message);
+        });
     }
 
     public static int getClickedIndex(
@@ -343,6 +349,8 @@ public class BcSmartspaceCard extends ConstraintLayout {
             this.mNextAlarmImageView = (ImageView) this.mExtrasGroup.findViewById(R.id.alarm_icon);
             this.mNextAlarmTextView = (TextView) this.mExtrasGroup.findViewById(R.id.alarm_text);
         }
+        mRandomMessageView = (TextView) findViewById(R.id.random_message_text);
+        updateRandomMessage(null);
     }
 
     public final void setFormattedContentDescription(
@@ -380,5 +388,40 @@ public class BcSmartspaceCard extends ConstraintLayout {
                             + " contentDescription=%s",
                         objArr));
         textView.setContentDescription(string);
+    }
+
+    private void updateRandomMessage(String message) {
+        if (mRandomMessageView == null) {
+            return;
+        }
+        
+        if (TextUtils.isEmpty(message)) {
+            BcSmartspaceTemplateDataUtils.updateVisibility(mRandomMessageView, 8);
+        } else {
+            mRandomMessageView.setText(message);
+            BcSmartspaceTemplateDataUtils.updateVisibility(mRandomMessageView, 0);
+        }
+    }
+    
+    public void refreshRandomMessage() {
+        if (mMessagingManager != null) {
+            mMessagingManager.updateMessage();
+        }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mMessagingManager != null) {
+            mMessagingManager.startListening();
+        }
+    }
+    
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mMessagingManager != null) {
+            mMessagingManager.stopListening();
+        }
     }
 }

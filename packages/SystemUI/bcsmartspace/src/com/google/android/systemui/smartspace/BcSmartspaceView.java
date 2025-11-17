@@ -7,8 +7,11 @@ import android.animation.ObjectAnimator;
 import android.app.smartspace.SmartspaceAction;
 import android.app.smartspace.SmartspaceTarget;
 import android.app.smartspace.SmartspaceTargetEvent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.ContentObserver;
 import android.graphics.drawable.Drawable;
 import android.os.Debug;
@@ -22,6 +25,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.viewpager.widget.ViewPager;
@@ -30,6 +34,7 @@ import com.android.systemui.bcsmartspace.R;
 import com.android.systemui.plugins.BcSmartspaceDataPlugin;
 import com.android.systemui.plugins.FalsingManager;
 
+import com.google.android.systemui.smartspace.QuickspaceMessagingManager;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceCardLogger;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceCardLoggerUtil;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceCardLoggingInfo;
@@ -146,6 +151,18 @@ public class BcSmartspaceView extends FrameLayout
                 };
     }
 
+    private final BroadcastReceiver mTimeChangeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_TIME_TICK.equals(action) ||
+                Intent.ACTION_TIME_CHANGED.equals(action) ||
+                Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
+                refreshRandomMessages();
+            }
+        }
+    };
+
     @Override // android.view.View
     public void onVisibilityAggregated(boolean isVisible) {
         super.onVisibilityAggregated(isVisible);
@@ -183,6 +200,11 @@ public class BcSmartspaceView extends FrameLayout
         if (this.mDataProvider != null) {
             registerDataProvider(this.mDataProvider);
         }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_TIME_TICK);
+        filter.addAction(Intent.ACTION_TIME_CHANGED);
+        filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        getContext().registerReceiver(mTimeChangeReceiver, filter);
     }
 
     @Override // android.view.ViewGroup, android.view.View
@@ -191,6 +213,24 @@ public class BcSmartspaceView extends FrameLayout
         getContext().getContentResolver().unregisterContentObserver(this.mAodObserver);
         if (this.mDataProvider != null) {
             this.mDataProvider.unregisterListener(this);
+        }
+        try {
+            getContext().unregisterReceiver(mTimeChangeReceiver);
+        } catch (IllegalArgumentException e) {
+        }
+    }
+
+    private void refreshRandomMessages() {
+        for (int i = 0; i < mAdapter.getCount(); i++) {
+            CardPagerAdapter.ViewHolder holder = mAdapter.mViewHolders.get(i);
+            if (holder != null) {
+                if (holder.mLegacyCard != null) {
+                    holder.mLegacyCard.refreshRandomMessage();
+                }
+                if (holder.mCard != null) {
+                    holder.mCard.refreshRandomMessage();
+                }
+            }
         }
     }
 

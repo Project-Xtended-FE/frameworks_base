@@ -14302,6 +14302,12 @@ public final class Settings {
         public static final String NOTIFICATION_ROW_TRANSPARENCY_LOCKSCREEN = "notification_row_transparency_lockscreen";
 
         /**
+         * Whether the Smartspace Quickspace PSA messages are enabled.
+         * @hide
+         */
+        public static final String QUICKSPACE_PSA_ENABLED = "quickspace_psa_enabled";
+
+        /**
          * Whether to show media squiggle animation
          * @hide
          */
