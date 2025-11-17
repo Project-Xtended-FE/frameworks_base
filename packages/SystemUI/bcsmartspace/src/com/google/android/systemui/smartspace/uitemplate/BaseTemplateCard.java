@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -29,6 +30,7 @@ import com.google.android.systemui.smartspace.BcSmartspaceTemplateDataUtils;
 import com.google.android.systemui.smartspace.DoubleShadowIconDrawable;
 import com.google.android.systemui.smartspace.DoubleShadowTextView;
 import com.google.android.systemui.smartspace.IcuDateTextView;
+import com.google.android.systemui.smartspace.QuickspaceMessagingManager;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceCardLoggingInfo;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceCardMetadataLoggingInfo;
 import com.google.android.systemui.smartspace.logging.BcSmartspaceSubcardLoggingInfo;
@@ -60,6 +62,8 @@ public class BaseTemplateCard extends ConstraintLayout {
     public DoubleShadowTextView mTitleTextView;
     public int mTopPadding;
     public boolean mValidSecondaryCard;
+    public TextView mRandomMessageView;
+    private QuickspaceMessagingManager mMessagingManager;
 
     public BaseTemplateCard(Context context) {
         this(context, null);
@@ -83,6 +87,10 @@ public class BaseTemplateCard extends ConstraintLayout {
         this.mNextAlarmImageView = null;
         this.mNextAlarmTextView = null;
         this.mSupplementalLineTextView = null;
+        mMessagingManager = new QuickspaceMessagingManager(context);
+        mMessagingManager.setOnMessageChangedListener(message -> {
+            updateRandomMessage(message);
+        });
     }
 
     public static boolean shouldTint(BaseTemplateData.SubItemInfo subItemInfo) {
@@ -358,6 +366,8 @@ public class BaseTemplateCard extends ConstraintLayout {
                     (DoubleShadowTextView)
                             this.mExtrasGroup.findViewById(R.id.supplemental_line_text);
         }
+        mRandomMessageView = (TextView) findViewById(R.id.random_message_text);
+        updateRandomMessage(null);
     }
 
     public final void updateTextViewIconTint(DoubleShadowTextView doubleShadowTextView, boolean z) {
@@ -370,6 +380,41 @@ public class BaseTemplateCard extends ConstraintLayout {
                     drawable.setTintList(null);
                 }
             }
+        }
+    }
+
+    private void updateRandomMessage(String message) {
+        if (mRandomMessageView == null) {
+            return;
+        }
+        
+        if (TextUtils.isEmpty(message)) {
+            BcSmartspaceTemplateDataUtils.updateVisibility(mRandomMessageView, 8);
+        } else {
+            mRandomMessageView.setText(message);
+            BcSmartspaceTemplateDataUtils.updateVisibility(mRandomMessageView, 0);
+        }
+    }
+
+    public void refreshRandomMessage() {
+        if (mMessagingManager != null) {
+            mMessagingManager.updateMessage();
+        }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mMessagingManager != null) {
+            mMessagingManager.startListening();
+        }
+    }
+    
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mMessagingManager != null) {
+            mMessagingManager.stopListening();
         }
     }
 }

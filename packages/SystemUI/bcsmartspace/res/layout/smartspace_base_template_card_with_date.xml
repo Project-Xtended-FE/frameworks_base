@@ -48,6 +48,23 @@
             <include layout="@layout/smartspace_subtitle_pane"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <TextView
+            android:id="@+id/random_message_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_below="@+id/smartspace_subtitle_group"
+            android:textSize="15sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@*android:string/config_bodyFontFamily"
+            android:visibility="gone"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:drawablePadding="6dp"
+            android:drawableStart="@drawable/ic_smartspace_tips"
+            android:drawableTint="#FFFFFF"
+            android:gravity="center_vertical"/>
+
         <LinearLayout
             android:id="@+id/smartspace_extras_group"
             android:orientation="horizontal"
@@ -55,7 +72,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_below="@+id/smartspace_subtitle_group">
+            android:layout_below="@+id/random_message_text">
             <include layout="@layout/smartspace_extras"/>
         </LinearLayout>
     </RelativeLayout>
