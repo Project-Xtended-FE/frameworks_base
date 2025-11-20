@@ -21,6 +21,7 @@ import com.android.systemui.qs.composefragment.SceneKeys
 import com.android.systemui.qs.shared.ui.ElementKeys
 
 fun TransitionBuilder.quickQuickSettingsToQuickSettings(
+    shouldFadeQqsTiles: Boolean = true,
     animateTilesExpansion: () -> Boolean = { true }
 ) {
 
@@ -31,12 +32,15 @@ fun TransitionBuilder.quickQuickSettingsToQuickSettings(
     anchoredTranslate(ElementKeys.QuickSettingsContent, ElementKeys.GridAnchor)
 
     sharedElement(ElementKeys.TileElementMatcher, enabled = animateTilesExpansion())
+    
     sharedElement(ElementKeys.BrightnessSlider)
-
-    // This will animate between 0f (QQS) and 0.5, fading in the QQS tiles when coming back
-    // from non first page QS. The QS content ends fading out at 0.43f, so there's a brief
-    // overlap, but because they are really faint, it looks better than complete black without
-    // overlap.
-    fractionRange(end = 0.5f) { fade(SceneKeys.QqsTileElementMatcher) }
+    
+    if (shouldFadeQqsTiles) {
+        // This will animate between 0f (QQS) and 0.5, fading in the QQS tiles when coming back
+        // from non first page QS. The QS content ends fading out at 0.43f, so there's a brief
+        // overlap, but because they are really faint, it looks better than complete black without
+        // overlap.
+        fractionRange(end = 0.5f) { fade(SceneKeys.QqsTileElementMatcher) }
+    }
     anchoredTranslate(SceneKeys.QqsTileElementMatcher, ElementKeys.GridAnchor)
 }
