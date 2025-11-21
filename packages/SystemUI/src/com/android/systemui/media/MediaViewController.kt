@@ -69,7 +69,7 @@ class MediaViewController @Inject constructor(
 
     private var mediaFilter = 0
     private var mediaFadeLevel = 40
-    private var mediaBlurLevel = 200
+    private var mediaBlurLevel = 90
 
     private val settingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
@@ -143,9 +143,9 @@ class MediaViewController @Inject constructor(
         mediaBlurLevel = Settings.System.getIntForUser(
             context.contentResolver,
             Settings.System.LS_MEDIA_ART_BLUR_LEVEL,
-            200,
+            90,
             UserHandle.USER_CURRENT
-        ).coerceIn(0, 600)
+        ).coerceIn(0, 200)
 
 
         if (!featureEnabled) {
