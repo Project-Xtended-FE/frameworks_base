@@ -70,6 +70,7 @@ class MediaViewController @Inject constructor(
     private var mediaFilter = 0
     private var mediaFadeLevel = 40
     private var mediaBlurLevel = 90
+    private var pixelSize = 20
 
     private val settingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
@@ -114,6 +115,11 @@ class MediaViewController @Inject constructor(
             false,
             settingsObserver
         )
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.LS_MEDIA_ART_PIXEL_SIZE),
+            false,
+            settingsObserver
+        )
 
         updateSettings()
     }
@@ -147,6 +153,12 @@ class MediaViewController @Inject constructor(
             UserHandle.USER_CURRENT
         ).coerceIn(0, 200)
 
+        pixelSize = Settings.System.getIntForUser(
+            context.contentResolver,
+            Settings.System.LS_MEDIA_ART_PIXEL_SIZE,
+            20,
+            UserHandle.USER_CURRENT
+        ).coerceIn(5, 50)
 
         if (!featureEnabled) {
             cleanupResources(false)
@@ -205,6 +217,7 @@ class MediaViewController @Inject constructor(
                 )
                 RenderEffect.createChainEffect(blurEffect, grayscaleEffect)
             }
+            7 -> null
             else -> null
         }
 
@@ -284,7 +297,11 @@ class MediaViewController @Inject constructor(
         val bitmap = drawableToBitmap(drawable)
         val resizedBitmap = getResizedBitmap(bitmap)
 
-        val processedBitmap = resizedBitmap
+        val processedBitmap = if (mediaFilter == 7) {
+            applyPixelation(resizedBitmap)
+        } else {
+            resizedBitmap
+        }
 
         val bitmapDrawable = BitmapDrawable(context.resources, processedBitmap).apply {
             alpha = 255
@@ -303,6 +320,51 @@ class MediaViewController @Inject constructor(
             setBounds(0, 0, processedBitmap.width, processedBitmap.height)
             setLayerInset(1, 0, 0, 0, 0)
         }
+    }
+
+    private fun applyPixelation(source: Bitmap): Bitmap {
+        val width = source.width
+        val height = source.height
+        val config = source.config ?:Bitmap. Config.ARGB_8888
+	val pixelated = Bitmap.createBitmap(width, height, config)
+	val canvas = Canvas(pixelated)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = false
+        }
+
+        var y = 0
+        while (y < height) {
+            var x = 0
+            while (x < width) {
+                val blockWidth = min(pixelSize, width - x)
+                val blockHeight = min(pixelSize, height - y)
+                
+                val sampleX = x + blockWidth / 2
+                val sampleY = y + blockHeight / 2
+                val color = source.getPixel(
+                    min(sampleX, width - 1),
+                    min(sampleY, height - 1)
+                )
+                
+                paint.color = color
+                canvas.drawRect(
+                    x.toFloat(),
+                    y.toFloat(),
+                    (x + blockWidth).toFloat(),
+                    (y + blockHeight).toFloat(),
+                    paint
+                )
+                
+                x += pixelSize
+            }
+            y += pixelSize
+        }
+
+        if (source != pixelated && !source.isRecycled) {
+            source.recycle()
+        }
+
+        return pixelated
     }
 
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
