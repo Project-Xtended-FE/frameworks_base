@@ -7250,6 +7250,11 @@ public final class Settings {
         public static final String LS_MEDIA_ART_BLUR_LEVEL = "ls_media_art_blur_level";
 
         /**
+         * @hide
+         */
+        public static final String LS_MEDIA_ART_PIXEL_SIZE = "ls_media_art_pixel_size";
+
+        /**
         * Lock Glymps - Dynamic lock screen wallpaper feature
         * @hide
         */
