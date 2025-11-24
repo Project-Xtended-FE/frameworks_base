@@ -7694,6 +7694,11 @@ public final class Settings {
         /**
          * @hide
          */
+        public static final String UDFPS_ICON_AOD = "udfps_icon_aod";
+
+        /**
+         * @hide
+         */
         public static final String UDFPS_ICON_TYPE = "udfps_icon_type";
 
         /**
