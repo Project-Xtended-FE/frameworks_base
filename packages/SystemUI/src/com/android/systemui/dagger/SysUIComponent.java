@@ -25,6 +25,7 @@ import com.android.systemui.dagger.qualifiers.Main;
 import com.android.systemui.dagger.qualifiers.PerUser;
 import com.android.systemui.doze.DozeScreenStateEx;
 import com.android.systemui.dump.DumpManager;
+import com.android.systemui.charging.ChargingAnimationViewController;
 import com.android.systemui.edgelight.EdgeLightViewController;
 import com.android.systemui.nowplaying.NowPlayingViewController;
 import com.android.systemui.keyguard.KeyguardSliceProvider;
@@ -225,4 +226,7 @@ public interface SysUIComponent {
 
     @SysUISingleton
     NowPlayingViewController nowPlayingViewController();
+
+    @SysUISingleton
+    ChargingAnimationViewController chargingAnimationViewController();
 }

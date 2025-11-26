@@ -145,6 +145,7 @@ import com.android.systemui.dagger.qualifiers.UiBackground;
 import com.android.systemui.demomode.DemoMode;
 import com.android.systemui.demomode.DemoModeController;
 import com.android.systemui.edgelight.EdgeLightViewController;
+import com.android.systemui.charging.ChargingAnimationViewController;
 import com.android.systemui.nowplaying.NowPlayingViewController;
 import com.android.systemui.emergency.EmergencyGesture;
 import com.android.systemui.emergency.EmergencyGestureModule.EmergencyGestureIntentFactory;
@@ -1211,6 +1212,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
         getNotifContainerParentView().addView(PulseViewController.get(mContext).getPulseView(), 1);
         getNotifContainerParentView().addView(EdgeLightViewController.get(mContext).getEdgeLightView(), 2);
         getNotifContainerParentView().addView(NowPlayingViewController.get(mContext).getNowPlayingView(), 3);
+        getNotifContainerParentView().addView(ChargingAnimationViewController.get(mContext).getChargingView(), 4);
     }
 
     private ViewGroup getNotifContainerParentView() {
