@@ -71,6 +71,8 @@ import java.util.HashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class OnGoingActionProgressController implements NotificationListener.NotificationHandler,
         KeyguardStateController.Callback, OnHeadsUpChangedListener {
@@ -109,6 +111,7 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     private static final int EXIT_ANIMATION_DURATION = 300;
     private static final int EXPAND_ANIMATION_DURATION = 350;
     private static final float ENTRY_TRANSLATION_Y = 50f;
+    private static final int EXECUTOR_SHUTDOWN_TIMEOUT_MS = 1000;
 
     private final Context mContext;
     private final ContentResolver mContentResolver;
@@ -119,7 +122,7 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     private final HeadsUpManager mHeadsUpManager;
     private final IconFetcher mIconFetcher;
     private final MediaSessionManagerHelper mMediaSessionHelper;
-    private final Executor mBackgroundExecutor;
+    private final ExecutorService mBackgroundExecutor;
     private final Object mLock = new Object();
     private final Runnable mUiUpdateRunnable = new Runnable() {
         @Override
@@ -149,8 +152,8 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     private ObjectAnimator mCompactEntryAnimator;
     private ObjectAnimator mCompactExitAnimator;
     private int mAccentColor;
-    private boolean mIsAnimatingEntry = false;
-    private boolean mIsAnimatingExit = false;
+    private final AtomicBoolean mIsAnimatingEntry = new AtomicBoolean(false);
+    private final AtomicBoolean mIsAnimatingExit = new AtomicBoolean(false);
     
     private boolean mShowMediaProgress = true;
     private boolean mIsTrackingProgress = false;
@@ -166,8 +169,8 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     private String mTrackedPackageName;
     private PopupWindow mMediaPopup;
     private boolean mIsPopupActive = false;
-    private boolean mNeedsFullUiUpdate = true;
-    private boolean mIsViewAttached = false;
+    private volatile boolean mNeedsFullUiUpdate = true;
+    private volatile boolean mIsViewAttached = false;
     private boolean mIsExpanded = false;
     
     // Position & Size variables (simplified)
@@ -179,6 +182,9 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     
     private boolean mUpdatePending = false;
     private long mLastUpdateTime = 0;
+    
+    private String mLastLoadedIconPackage = null;
+    private String mLastLoadedCompactIconPackage = null;
 
     private final GestureDetector mGestureDetector;
     private final Handler mMediaProgressHandler = new Handler(Looper.getMainLooper());
@@ -397,13 +403,19 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     private void requestUiUpdate() {
         long currentTime = System.currentTimeMillis();
         synchronized (mLock) {
-            if (!mUpdatePending && (currentTime - mLastUpdateTime > DEBOUNCE_DELAY_MS)) {
+            if (mUpdatePending) {
+                return;
+            }
+            
+            long timeSinceLastUpdate = currentTime - mLastUpdateTime;
+            if (timeSinceLastUpdate > DEBOUNCE_DELAY_MS) {
                 mUpdatePending = false;
                 mLastUpdateTime = currentTime;
                 updateViews();
-            } else if (!mUpdatePending) {
+            } else {
                 mUpdatePending = true;
-                mHandler.postDelayed(mUiUpdateRunnable, DEBOUNCE_DELAY_MS);
+                long delay = DEBOUNCE_DELAY_MS - timeSinceLastUpdate;
+                mHandler.postDelayed(mUiUpdateRunnable, delay);
             }
         }
     }
@@ -473,7 +485,11 @@ public class OnGoingActionProgressController implements NotificationListener.Not
     }
 
     private void animateEntry(View view, float targetAlpha) {
-        if (view.getVisibility() == View.VISIBLE && !mIsAnimatingEntry) {
+        if (view.getVisibility() == View.VISIBLE && !mIsAnimatingEntry.get()) {
+            return;
+        }
+
+        if (!mIsAnimatingEntry.compareAndSet(false, true)) {
             return;
         }
 
@@ -485,8 +501,6 @@ public class OnGoingActionProgressController implements NotificationListener.Not
             view.setTranslationY(ENTRY_TRANSLATION_Y);
         }
 
-        mIsAnimatingEntry = true;
-
         view.animate()
                 .alpha(targetAlpha)
                 .translationY(0f)
@@ -495,20 +509,27 @@ public class OnGoingActionProgressController implements NotificationListener.Not
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        mIsAnimatingEntry = false;
+                        mIsAnimatingEntry.set(false);
+                    }
+                    
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        mIsAnimatingEntry.set(false);
                     }
                 })
                 .start();
     }
 
     private void animateExit(View view) {
-        if (view.getVisibility() == View.GONE || mIsAnimatingExit) {
+        if (view.getVisibility() == View.GONE) {
+            return;
+        }
+
+        if (!mIsAnimatingExit.compareAndSet(false, true)) {
             return;
         }
 
         cancelAnimations(view);
-        
-        mIsAnimatingExit = true;
 
         view.animate()
                 .alpha(0f)
@@ -520,7 +541,12 @@ public class OnGoingActionProgressController implements NotificationListener.Not
                     public void onAnimationEnd(Animator animation) {
                         view.setVisibility(View.GONE);
                         view.setTranslationY(ENTRY_TRANSLATION_Y);
-                        mIsAnimatingExit = false;
+                        mIsAnimatingExit.set(false);
+                    }
+                    
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        mIsAnimatingExit.set(false);
                     }
                 })
                 .start();
@@ -590,6 +616,15 @@ public class OnGoingActionProgressController implements NotificationListener.Not
         }
     }
 
+    @Nullable
+    private String getMediaPackageName() {
+        android.media.session.PlaybackState playbackState = mMediaSessionHelper.getMediaControllerPlaybackState();
+        if (playbackState != null && playbackState.getExtras() != null) {
+            return playbackState.getExtras().getString("package");
+        }
+        return null;
+    }
+
     private void updateMediaProgressFull() {
         if (!mIsViewAttached) return;
         
@@ -601,15 +636,12 @@ public class OnGoingActionProgressController implements NotificationListener.Not
         
         if (mediaAppIcon != null) {
             mIconView.setImageDrawable(mediaAppIcon);
+            mLastLoadedIconPackage = null;
         } else {
-            String packageName = null;
+            String packageName = getMediaPackageName();
             
-            android.media.session.PlaybackState playbackState = mMediaSessionHelper.getMediaControllerPlaybackState();
-            if (playbackState != null && playbackState.getExtras() != null) {
-                packageName = playbackState.getExtras().getString("package");
-            }
-            
-            if (packageName != null) {
+            if (packageName != null && !packageName.equals(mLastLoadedIconPackage)) {
+                mLastLoadedIconPackage = packageName;
                 loadIconInBackground(packageName, drawable -> {
                     if (mIconView != null && drawable != null) {
                         mIconView.setImageDrawable(drawable);
@@ -617,8 +649,9 @@ public class OnGoingActionProgressController implements NotificationListener.Not
                         mIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
                     }
                 });
-            } else if (mIconView != null) {
+            } else if (packageName == null && mIconView != null) {
                 mIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                mLastLoadedIconPackage = null;
             }
         }
 
@@ -649,13 +682,12 @@ public class OnGoingActionProgressController implements NotificationListener.Not
         
         if (mediaAppIcon != null) {
             mCompactIconView.setImageDrawable(mediaAppIcon);
+            mLastLoadedCompactIconPackage = null;
         } else {
-            String packageName = null;
-            if (playbackState != null && playbackState.getExtras() != null) {
-                packageName = playbackState.getExtras().getString("package");
-            }
+            String packageName = getMediaPackageName();
             
-            if (packageName != null) {
+            if (packageName != null && !packageName.equals(mLastLoadedCompactIconPackage)) {
+                mLastLoadedCompactIconPackage = packageName;
                 loadIconInBackground(packageName, drawable -> {
                     if (mCompactIconView != null && drawable != null) {
                         mCompactIconView.setImageDrawable(drawable);
@@ -663,8 +695,9 @@ public class OnGoingActionProgressController implements NotificationListener.Not
                         mCompactIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
                     }
                 });
-            } else if (mCompactIconView != null) {
+            } else if (packageName == null && mCompactIconView != null) {
                 mCompactIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                mLastLoadedCompactIconPackage = null;
             }
         }
     }
@@ -690,7 +723,8 @@ public class OnGoingActionProgressController implements NotificationListener.Not
             animateProgress(mProgressBar, mCurrentProgress);
         }
 
-        if (mTrackedPackageName != null) {
+        if (mTrackedPackageName != null && !mTrackedPackageName.equals(mLastLoadedIconPackage)) {
+            mLastLoadedIconPackage = mTrackedPackageName;
             loadIconInBackground(mTrackedPackageName, drawable -> {
                 if (mIconView != null && drawable != null) {
                     mIconView.setImageDrawable(drawable);
@@ -717,7 +751,8 @@ public class OnGoingActionProgressController implements NotificationListener.Not
             animateProgress(mCircularProgressBar, mCurrentProgress);
         }
 
-        if (mTrackedPackageName != null) {
+        if (mTrackedPackageName != null && !mTrackedPackageName.equals(mLastLoadedCompactIconPackage)) {
+            mLastLoadedCompactIconPackage = mTrackedPackageName;
             loadIconInBackground(mTrackedPackageName, drawable -> {
                 if (mCompactIconView != null && drawable != null) {
                     mCompactIconView.setImageDrawable(drawable);
@@ -726,25 +761,22 @@ public class OnGoingActionProgressController implements NotificationListener.Not
         }
     }
 
-public void onConfigurationChanged(Configuration newConfig) {
-    Log.d(TAG, "onConfigurationChanged called");
-    
-    // Update accent color on configuration change
-    int oldAccentColor = mAccentColor;
-    updateAccentColor();
-    
-    if (oldAccentColor != mAccentColor) {
-        Log.d(TAG, "Accent color changed from configuration: " + 
-              Integer.toHexString(oldAccentColor) + " -> " + Integer.toHexString(mAccentColor));
-        applySystemTheming();
+    public void onConfigurationChanged(Configuration newConfig) {
+        Log.d(TAG, "onConfigurationChanged called");
         
-        // Force a full UI update to refresh everything with new colors
-        mNeedsFullUiUpdate = true;
-        requestUiUpdate();
+        int oldAccentColor = mAccentColor;
+        updateAccentColor();
+        
+        if (oldAccentColor != mAccentColor) {
+            Log.d(TAG, "Accent color changed from configuration: " + 
+                  Integer.toHexString(oldAccentColor) + " -> " + Integer.toHexString(mAccentColor));
+            applySystemTheming();
+            mNeedsFullUiUpdate = true;
+            requestUiUpdate();
+        }
     }
-}
 
-    private void loadIconInBackground(String packageName, IconCallback callback) {
+    private void loadIconInBackground(@NonNull String packageName, @NonNull IconCallback callback) {
         if (packageName == null) return;
         
         synchronized (mLock) {
@@ -758,6 +790,10 @@ public void onConfigurationChanged(Configuration newConfig) {
         }
         
         mBackgroundExecutor.execute(() -> {
+            if (!mIsViewAttached) {
+                return;
+            }
+            
             try {
                 final IconFetcher.AdaptiveDrawableResult iconResult = 
                         mIconFetcher.getMonotonicPackageIcon(packageName);
@@ -771,18 +807,24 @@ public void onConfigurationChanged(Configuration newConfig) {
                     }
                     
                     mHandler.post(() -> {
-                        callback.onIconLoaded(iconResult.drawable);
+                        if (mIsViewAttached) {
+                            callback.onIconLoaded(iconResult.drawable);
+                        }
                     });
                 } else {
                     Log.w(TAG, "Failed to load icon for package: " + packageName);
                     mHandler.post(() -> {
-                        callback.onIconLoaded(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                        if (mIsViewAttached) {
+                            callback.onIconLoaded(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                        }
                     });
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading icon for package: " + packageName, e);
                 mHandler.post(() -> {
-                    callback.onIconLoaded(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                    if (mIsViewAttached) {
+                        callback.onIconLoaded(mContext.getResources().getDrawable(R.drawable.ic_default_music_icon));
+                    }
                 });
             }
         });
@@ -813,6 +855,8 @@ public void onConfigurationChanged(Configuration newConfig) {
         mCurrentProgress = 0;
         mCurrentProgressMax = 0;
         mLastProgressUpdateTime = 0;
+        mLastLoadedIconPackage = null;
+        mLastLoadedCompactIconPackage = null;
         requestUiUpdate();
     }
 
@@ -1203,6 +1247,9 @@ public void onConfigurationChanged(Configuration newConfig) {
         mIsViewAttached = false;
 
         mHandler.removeCallbacks(mStaleProgressChecker);
+        mHandler.removeCallbacks(mUiUpdateRunnable);
+        mMediaProgressHandler.removeCallbacks(mMediaProgressRunnable);
+        mHandler.removeCallbacksAndMessages(null);
 
         // Cancel all animations
         cancelAnimations(mProgressRootView);
@@ -1221,22 +1268,24 @@ public void onConfigurationChanged(Configuration newConfig) {
         mSettingsObserver.unregister();
         mKeyguardStateController.removeCallback(this);
         mHeadsUpManager.removeListener(this);
+        mNotificationListener.removeNotificationHandler(this);
         mMediaSessionHelper.removeMediaMetadataListener(mMediaMetadataListener);
-        
-        mMediaProgressHandler.removeCallbacks(mMediaProgressRunnable);
-        mHandler.removeCallbacksAndMessages(null);
         
         if (mMediaPopup != null && mMediaPopup.isShowing()) {
             mMediaPopup.dismiss();
         }
+        mMediaPopup = null;
         
         synchronized (mLock) {
             mIsTrackingProgress = false;
             mTrackedNotificationKey = null;
             mTrackedPackageName = null;
+            mLastLoadedIconPackage = null;
+            mLastLoadedCompactIconPackage = null;
             mIconCache.clear();
         }
         
+        // Clear drawables to prevent memory leaks
         if (mIconView != null) {
             mIconView.setImageDrawable(null);
         }
@@ -1245,8 +1294,22 @@ public void onConfigurationChanged(Configuration newConfig) {
             mCompactIconView.setImageDrawable(null);
         }
 
-        if (mBackgroundExecutor instanceof ExecutorService) {
-            ((ExecutorService) mBackgroundExecutor).shutdown();
+        if (mBackgroundExecutor != null) {
+            mBackgroundExecutor.shutdown();
+            try {
+                if (!mBackgroundExecutor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                    Log.w(TAG, "Executor did not terminate in time, forcing shutdown");
+                    mBackgroundExecutor.shutdownNow();
+                    
+                    if (!mBackgroundExecutor.awaitTermination(500, TimeUnit.MILLISECONDS)) {
+                        Log.e(TAG, "Executor did not terminate after shutdownNow");
+                    }
+                }
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Interrupted while waiting for executor shutdown", e);
+                mBackgroundExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
