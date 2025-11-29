@@ -1079,6 +1079,8 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
             squishiness = 1;
         } else if (mTransitioningToFullShadeProgress > 0.0f) {
             squishiness = mLockscreenShadeTransitionController.getQsSquishTransitionFraction();
+        } else if (getFullyExpanded() || mPanelViewControllerLazy.get().isFullyExpanded()) {
+            squishiness = 1;
         } else {
             squishiness = mNotificationStackScrollLayoutController
                     .getNotificationSquishinessFraction();
@@ -1695,6 +1697,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
             mInitialHeightOnTouch = mExpansionHeight;
             mInitialTouchY = event.getY();
             mInitialTouchX = event.getX();
+            maybeSetEarlyExpansion();
         }
         if (!isFullyCollapsed && !isShadeOrQsHeightAnimationRunning) {
             handleDown(event);
@@ -1716,6 +1719,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
         }
         if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
             mConflictingExpansionGesture = false;
+            maybeResetEarlyExpansion();
         }
         if (action == MotionEvent.ACTION_DOWN && isFullyCollapsed && isExpansionEnabled()) {
             mTwoFingerExpandPossible = true;
@@ -1784,6 +1788,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
                 mInitialHeightOnTouch = mExpansionHeight;
                 initVelocityTracker();
                 trackMovement(event);
+                maybeSetEarlyExpansion();
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
@@ -1821,6 +1826,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
                     flingQsWithCurrentVelocity(y,
                             event.getActionMasked() == MotionEvent.ACTION_CANCEL);
                 } else {
+                    maybeResetEarlyExpansion();
                     traceQsJank(false,
                             event.getActionMasked() == MotionEvent.ACTION_CANCEL);
                 }
@@ -1906,6 +1912,7 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
                     mInitialTouchY = y;
                     mInitialTouchX = x;
                     mNotificationStackScrollLayoutController.cancelLongPress();
+                    maybeSetEarlyExpansion();
                     return true;
                 } else {
                     mShadeLog.logQsTrackingNotStarted(mInitialTouchY, y, h, touchSlop,
@@ -2089,6 +2096,20 @@ public class QuickSettingsControllerImpl implements QuickSettingsController, Dum
         float displayDensity = mPanelViewControllerLazy.get().getDisplayDensity();
         mLockscreenGestureLogger.write(gesture,
                 (int) ((y - getInitialTouchY()) / displayDensity), (int) (vel / displayDensity));
+    }
+
+    private void maybeSetEarlyExpansion() {
+        if (QSComposeFragment.isEnabled() && mQs != null) {
+            mQs.setExpanded(true);
+            mMediaHierarchyManager.setQsExpanded(true);
+        }
+    }
+
+    private void maybeResetEarlyExpansion() {
+        if (QSComposeFragment.isEnabled()) {
+            updateQsState();
+            mMediaHierarchyManager.setQsExpanded(getExpanded());
+        }
     }
 
     @NeverCompile
