@@ -124,8 +124,11 @@ class PulseViewController @Inject constructor(
             val mediaPlaying = MediaSessionManager.get().isMediaPlaying
             val isDozing = ScrimUtils.get().isDozing()
             val isPulsing = ScrimUtils.get().isPulsing()
+            val panelFullyCollapsed = ScrimUtils.get().isPanelFullyCollapsed()
             
             if (!pulseEnabled || !mediaPlaying) return false
+            
+            if (!panelFullyCollapsed) return false
             
             if (isDozing || isPulsing) {
                 return settingsRepository.isPulseShowOnAmbient()
@@ -181,6 +184,14 @@ class PulseViewController @Inject constructor(
     }
 
     override fun setPulsing(pulsing: Boolean) {
+        mainScope.launch { updatePulseState() }
+    }
+
+    override fun onQsVisibilityChanged(visible: Boolean) {
+        mainScope.launch { updatePulseState() }
+    }
+
+    override fun onExpandedFractionChanged(expandedFraction: Float) {
         mainScope.launch { updatePulseState() }
     }
 
