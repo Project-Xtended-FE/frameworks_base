@@ -7500,6 +7500,11 @@ public final class Settings {
         public static final String ISLAND_MARGIN_TOP = "island_margin_top";
 
         /**
+         * @hide
+         */
+        public static final String SINGLE_QS_TONE_ENABLED = "single_qs_tone_enabled";
+
+        /**
          * Whether to show the battery bar
          * @hide
          */
