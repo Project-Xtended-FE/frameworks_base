@@ -242,6 +242,9 @@ public class KeyguardPatternView extends KeyguardInputView
         }
 
         mEcaView = findViewById(R.id.keyguard_selector_fade_container);
+        if (mEcaView != null) {
+            mEcaView.setVisibility(View.GONE);
+        }
     }
 
     @Override
