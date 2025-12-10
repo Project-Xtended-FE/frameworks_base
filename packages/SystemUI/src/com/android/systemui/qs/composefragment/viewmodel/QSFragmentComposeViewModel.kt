@@ -509,28 +509,6 @@ constructor(
             showsOnlyActiveMedia = true
             init(LOCATION_QS)
         }
-        updateMediaHostVisibility(qsMediaHost)
-    }
-
-    fun updateMediaHostVisibility(mediaHost: MediaHost): Flow<Boolean> {
-        return callbackFlow {
-            val originalVisible = mediaHost.visible
-
-            trySend(!originalVisible)
-            trySend(originalVisible)
-
-            val listener: (Boolean) -> Unit = { newVisibleState ->
-                trySend(newVisibleState).isSuccess
-            }
-
-            mediaHost.addVisibilityChangeListener(listener)
-
-            awaitClose {
-                mediaHost.removeVisibilityChangeListener(listener)
-            }
-        }.onStart {
-            emit(mediaHost.visible)
-        }
     }
 
     private suspend fun hydrateSquishinessInteractor() {
