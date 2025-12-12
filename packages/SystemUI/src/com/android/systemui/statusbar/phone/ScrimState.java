@@ -444,6 +444,7 @@ public enum ScrimState {
         mDockManager = dockManager;
         mDisplayRequiresBlanking = dozeParameters.getDisplayNeedsBlanking();
         mIsBlurSupported = isBlurSupported;
+        ShadeColors.init(scrimBehind.getContext());
     }
 
     /** Prepare state for transition. */

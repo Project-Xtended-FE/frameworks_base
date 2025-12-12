@@ -29,7 +29,9 @@ public class RisingSettingsConstants {
         "ongoing_action_chip",
         "compact_progress_mode",
         "statusbar_clock_chip",
-        "island_transparent_background"
+        "island_transparent_background",
+        "shade_panel_alpha",
+        "notification_scrim_alpha"
     };
     
     public static final String[] SECURE_SETTINGS_KEYS = {

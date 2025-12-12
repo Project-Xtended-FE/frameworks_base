@@ -7505,6 +7505,16 @@ public final class Settings {
         public static final String SINGLE_QS_TONE_ENABLED = "single_qs_tone_enabled";
 
         /**
+         * @hide
+         */
+        public static final String SHADE_PANEL_ALPHA = "shade_panel_alpha";
+
+        /**
+         * @hide
+         */
+        public static final String NOTIFICATION_SCRIM_ALPHA = "notification_scrim_alpha";
+
+        /**
          * Whether to show the battery bar
          * @hide
          */
