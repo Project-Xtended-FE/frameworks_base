@@ -89,6 +89,7 @@ import com.android.systemui.qs.footer.ui.viewmodel.FooterActionsDataUsageViewMod
 import com.android.systemui.qs.footer.ui.viewmodel.FooterActionsForegroundServicesButtonViewModel
 import com.android.systemui.qs.footer.ui.viewmodel.FooterActionsSecurityButtonViewModel
 import com.android.systemui.qs.footer.ui.viewmodel.FooterActionsViewModel
+import com.android.systemui.qs.panels.ui.compose.infinitegrid.CustomColorScheme
 import com.android.systemui.qs.ui.composable.QuickSettings
 import com.android.systemui.qs.ui.composable.QuickSettingsTheme
 import com.android.systemui.qs.ui.compose.borderOnFocus
@@ -407,7 +408,7 @@ private fun TextButton(
 ) {
     Expandable(
         shape = CircleShape,
-        color = LocalAndroidColorScheme.current.surfaceEffect1,
+        color = CustomColorScheme.current.qsTileColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
             modifier
