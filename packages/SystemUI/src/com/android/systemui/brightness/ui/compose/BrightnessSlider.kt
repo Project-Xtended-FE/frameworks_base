@@ -113,6 +113,7 @@ import com.android.systemui.haptics.slider.SeekableSliderTrackerConfig
 import com.android.systemui.haptics.slider.SliderHapticFeedbackConfig
 import com.android.systemui.haptics.slider.compose.ui.SliderHapticsViewModel
 import com.android.systemui.lifecycle.rememberViewModel
+import com.android.systemui.qs.panels.ui.compose.infinitegrid.CustomColorScheme
 import com.android.systemui.qs.ui.compose.borderOnFocus
 import com.android.systemui.res.R
 import com.android.systemui.utils.PolicyRestriction
@@ -260,7 +261,7 @@ fun BrightnessSlider(
                 },
                 track = { sliderState ->
                     val activeTrackColor = MaterialTheme.colorScheme.primary
-                    val inactiveTrackColor = LocalAndroidColorScheme.current.surfaceEffect1
+                    val inactiveTrackColor = CustomColorScheme.current.qsTileColor
                     val density = LocalDensity.current
 
                     Layout(
@@ -324,7 +325,7 @@ fun BrightnessSlider(
 
             val coroutineScope = rememberCoroutineScope()
             val autoBrightnessBackgroundColor by animateColorAsState(
-                targetValue = if (autoMode) MaterialTheme.colorScheme.primary else LocalAndroidColorScheme.current.surfaceEffect1
+                targetValue = if (autoMode) MaterialTheme.colorScheme.primary else CustomColorScheme.current.qsTileColor
             )
             val autoBrightnessIconTint by animateColorAsState(
                 targetValue = if (autoMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
@@ -525,7 +526,7 @@ private object Dimensions {
 private fun colors(): SliderColors {
     return SliderDefaults.colors()
         .copy(
-            inactiveTrackColor = LocalAndroidColorScheme.current.surfaceEffect1,
+            inactiveTrackColor = CustomColorScheme.current.qsTileColor,
             activeTickColor = MaterialTheme.colorScheme.onPrimary,
             inactiveTickColor = MaterialTheme.colorScheme.onSurface,
         )
