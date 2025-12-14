@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -697,6 +698,7 @@ constructor(
                                 // (b/383085298)
                                 modifier = Modifier.requiredHeightIn(max = Dp.Infinity),
                                 mediaHost = viewModel.qqsMediaHost,
+                                squishiness = squishiness,
                             )
                         }
                     }
@@ -1292,9 +1294,23 @@ private fun Modifier.gesturesDisabled(disabled: Boolean) =
 private fun MediaObject(
     mediaHost: MediaHost,
     modifier: Modifier = Modifier,
+    squishiness: Float = 1f,
     update: UniqueObjectHostView.() -> Unit = {},
 ) {
-    Box {
+    Box(
+        modifier =
+            Modifier.graphicsLayer {
+                scaleX = squishiness
+                scaleY = squishiness
+                transformOrigin = TransformOrigin(0.5f, 0.5f)
+                alpha = if (squishiness < 0.89f) {
+                    0f
+                } else {
+                    ((squishiness - 0.89f) / (1f - 0.89f))
+                        .coerceIn(0f, 1f)
+                }
+            }
+    ) {
         AndroidView(
             modifier = modifier,
             factory = {
