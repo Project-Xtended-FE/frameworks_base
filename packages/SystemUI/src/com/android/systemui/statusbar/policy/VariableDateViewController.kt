@@ -45,6 +45,7 @@ import com.android.systemui.util.time.BangabdaCalendarUtil
 import com.android.systemui.util.time.ChineseLunarCalendarUtil
 import com.android.systemui.util.time.IndianSakaCalendarUtil
 import com.android.systemui.util.time.SystemClock
+import com.android.systemui.util.time.VikramSamvatCalendarUtil
 import java.text.FieldPosition
 import java.text.ParsePosition
 import java.util.Date
@@ -93,6 +94,7 @@ private const val CALENDAR_TYPE_DEFAULT = "0"
 private const val CALENDAR_TYPE_LUNAR = "1"
 private const val CALENDAR_TYPE_SAKA = "2"
 private const val CALENDAR_TYPE_BANGABDA = "3"
+private const val CALENDAR_TYPE_VIKRAM = "4"
 
 class VariableDateViewController(
     private val systemClock: SystemClock,
@@ -292,6 +294,15 @@ class VariableDateViewController(
                     BangabdaCalendarUtil.FLAG_USE_BENGALI_DIGITS
                 )
                 if (baseText.isEmpty()) bangabdaText else "$baseText $bangabdaText"
+            }
+            CALENDAR_TYPE_VIKRAM -> {
+                val vikramText = VikramSamvatCalendarUtil.getVikramSamvatDateString(
+                    VikramSamvatCalendarUtil.FLAG_INCLUDE_DATE or
+                    VikramSamvatCalendarUtil.FLAG_INCLUDE_MONTH or
+                    VikramSamvatCalendarUtil.FLAG_INCLUDE_YEAR or
+                    VikramSamvatCalendarUtil.FLAG_USE_DEVANAGARI_DIGITS
+                )
+                if (baseText.isEmpty()) vikramText else "$baseText $vikramText"
             }
             else -> baseText
         }
