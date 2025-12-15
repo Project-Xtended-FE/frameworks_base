@@ -122,7 +122,10 @@ fun LargeTileContent(
         val animatedBackgroundColor by
             animateColorAsState(colors.iconBackground, label = "QSTileDualTargetBackgroundColor")
         val focusBorderColor = MaterialTheme.colorScheme.secondary
+        
         BoxWithConstraints {
+            val currentSquish = squishiness()
+            
             Box(
                 modifier =
                     Modifier
@@ -133,8 +136,9 @@ fun LargeTileContent(
                         .thenIf(toggleClick != null) {
                             Modifier
                                 .clip(iconShape)
-                                .verticalSquish(squishiness)
-                                .drawBehind { drawRect(animatedBackgroundColor) }
+                                .drawBehind { 
+                                    drawRect(animatedBackgroundColor) 
+                                }
                                 .borderOnFocus(color = focusBorderColor, iconShape.topEnd)
                                 .combinedClickable(
                                     onClick = toggleClick!!,
