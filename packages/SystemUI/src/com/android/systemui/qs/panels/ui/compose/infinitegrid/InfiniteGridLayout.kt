@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.util.fastMap
@@ -33,7 +34,9 @@ import com.android.systemui.media.controls.ui.controller.MediaHierarchyManager.C
 import com.android.systemui.qs.panels.shared.model.SizedTileImpl
 import com.android.systemui.qs.panels.ui.compose.PaginatableGridLayout
 import com.android.systemui.qs.panels.ui.compose.TileListener
+import com.android.systemui.qs.panels.ui.compose.bounceableInfo
 import com.android.systemui.qs.panels.ui.compose.rememberEditListState
+import com.android.systemui.qs.panels.ui.viewmodel.BounceableTileViewModel
 import com.android.systemui.qs.panels.ui.viewmodel.DetailsViewModel
 import com.android.systemui.qs.panels.ui.viewmodel.EditTileViewModel
 import com.android.systemui.qs.panels.ui.viewmodel.IconTilesViewModel
@@ -76,6 +79,7 @@ constructor(
         val columns = columnsWithMediaViewModel.columns
         val largeTiles by iconTilesViewModel.largeTilesState
         val largeTilesSpan by iconTilesViewModel.largeTilesSpanState
+        
         // Tiles or largeTiles may be updated while this is composed, so listen to any changes
         val sizedTiles =
             remember(tiles, largeTiles, largeTilesSpan) {
@@ -83,7 +87,12 @@ constructor(
                     SizedTileImpl(it, if (largeTiles.contains(it.spec)) largeTilesSpan else 1)
                 }
             }
+        
+        val bounceables =
+            remember(sizedTiles) { List(sizedTiles.size) { BounceableTileViewModel() } }
+        
         val squishiness by viewModel.squishinessViewModel.squishiness.collectAsStateWithLifecycle()
+        val scope = rememberCoroutineScope()
         val spans by remember(sizedTiles) { derivedStateOf { sizedTiles.fastMap { it.width } } }
 
 
@@ -100,6 +109,16 @@ constructor(
                     tile = it.tile,
                     iconOnly = iconTilesViewModel.isIconTile(it.tile.spec),
                     squishiness = { squishiness },
+                    coroutineScope = scope,
+                    bounceableInfo =
+                        bounceables.bounceableInfo(
+                            it,
+                            index = spanIndex,
+                            column = column,
+                            columns = columns,
+                            isFirstInRow = isFirstInColumn,
+                            isLastInRow = isLastInColumn,
+                        ),
                     tileHapticsViewModelFactoryProvider = tileHapticsViewModelFactoryProvider,
                     detailsViewModel = detailsViewModel,
                     isVisible = listening,
