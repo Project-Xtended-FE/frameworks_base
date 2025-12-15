@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.trace
 import com.android.app.tracing.coroutines.launchTraced as launch
 import com.android.compose.animation.Expandable
+import com.android.compose.animation.bounceable
 import com.android.compose.animation.rememberExpandableController
 import com.android.compose.modifiers.thenIf
 import com.android.compose.theme.LocalAndroidColorScheme
@@ -100,6 +101,7 @@ import com.android.systemui.qs.panels.ui.compose.infinitegrid.CustomColorScheme
 import com.android.systemui.qs.panels.ui.compose.infinitegrid.CommonTileDefaults.TileEndPadding
 import com.android.systemui.qs.panels.ui.compose.infinitegrid.CommonTileDefaults.TileStartPadding
 import com.android.systemui.qs.panels.ui.compose.infinitegrid.CommonTileDefaults.longPressLabel
+import com.android.systemui.qs.panels.ui.compose.BounceableInfo
 import com.android.systemui.qs.panels.ui.viewmodel.AccessibilityUiState
 import com.android.systemui.qs.panels.ui.viewmodel.DetailsViewModel
 import com.android.systemui.qs.panels.ui.viewmodel.IconProvider
@@ -110,6 +112,7 @@ import com.android.systemui.qs.panels.ui.viewmodel.toUiState
 import com.android.systemui.qs.tileimpl.QSTileImpl
 import com.android.systemui.qs.ui.compose.borderOnFocus
 import com.android.systemui.res.R
+import kotlinx.coroutines.CoroutineScope
 
 private const val TEST_TAG_SMALL = "qs_tile_small"
 private const val TEST_TAG_LARGE = "qs_tile_large"
@@ -143,12 +146,15 @@ fun Tile(
     tile: TileViewModel,
     iconOnly: Boolean,
     squishiness: () -> Float,
+    coroutineScope: CoroutineScope,
+    bounceableInfo: BounceableInfo,
     tileHapticsViewModelFactoryProvider: TileHapticsViewModelFactoryProvider,
     modifier: Modifier = Modifier,
     isVisible: () -> Boolean = { true },
     detailsViewModel: DetailsViewModel?,
 ) {
     trace(tile.traceName) {
+        val currentBounceableInfo by rememberUpdatedState(bounceableInfo)
         val resources = resources()
 
         /*
@@ -216,7 +222,14 @@ fun Tile(
                 modifier = modifier
                     .borderOnFocus(color = MaterialTheme.colorScheme.secondary, tileShape.topEnd)
                     .fillMaxWidth()
-                    .graphicsLayer { alpha = animatedAlpha },
+                    .graphicsLayer { alpha = animatedAlpha }
+                    .bounceable(
+                        bounceable = currentBounceableInfo.bounceable,
+                        previousBounceable = currentBounceableInfo.previousTile,
+                        nextBounceable = currentBounceableInfo.nextTile,
+                        orientation = Orientation.Horizontal,
+                        bounceEnd = currentBounceableInfo.bounceEnd,
+                    ),
             ) { expandable ->
                 val longClick: (() -> Unit)? =
                     {
@@ -247,6 +260,11 @@ fun Tile(
                                     TileHapticsViewModel.TileInteractionState.CLICKED
                                 )
                             }
+                        }
+                        
+                        // Add bounce animation on click
+                        coroutineScope.launch {
+                            currentBounceableInfo.bounceable.animateBounce()
                         }
                     },
                     onLongClick = longClick,
