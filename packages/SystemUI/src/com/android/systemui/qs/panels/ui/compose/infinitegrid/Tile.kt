@@ -186,23 +186,37 @@ fun Tile(
                 if (iconOnly) maxWidth / 2
                 else tileHeight / 2
             )
-            val animatedColor by animateColorAsState(colors.background, label = "QSTileBackgroundColor")
-            val animatedAlpha by animateFloatAsState(colors.alpha, label = "QSTileAlpha")
+            
+            val animatedColor by animateColorAsState(
+                colors.background, 
+                label = "QSTileBackgroundColor"
+            )
+            val animatedAlpha by animateFloatAsState(
+                colors.alpha, 
+                label = "QSTileAlpha"
+            )
 
             val context = LocalContext.current
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             val EFFECT_CLICK = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
 
+            val s = squishiness()
+            
+            val targetBgColor = if (s < 0.83f) Color.Transparent else animatedColor
+            val displayColor by animateColorAsState(
+                targetBgColor, 
+                label = "QSTileBackgroundColor"
+            )
+
             TileExpandable(
-                color = { animatedColor },
+                color = { displayColor },
                 shape = tileShape,
                 squishiness = squishiness,
                 hapticsViewModel = hapticsViewModel,
-                modifier =
-                    modifier
-                        .borderOnFocus(color = MaterialTheme.colorScheme.secondary, tileShape.topEnd)
-                        .fillMaxWidth()
-                        .graphicsLayer { alpha = animatedAlpha },
+                modifier = modifier
+                    .borderOnFocus(color = MaterialTheme.colorScheme.secondary, tileShape.topEnd)
+                    .fillMaxWidth()
+                    .graphicsLayer { alpha = animatedAlpha },
             ) { expandable ->
                 val longClick: (() -> Unit)? =
                     {
@@ -282,9 +296,12 @@ private fun TileExpandable(
     modifier: Modifier = Modifier,
     content: @Composable (Expandable) -> Unit,
 ) {
+    val s = squishiness()
     Expandable(
         controller = rememberExpandableController(color = color, shape = shape),
-        modifier = modifier.clip(shape).verticalSquish(squishiness),
+        modifier = modifier
+            .clip(shape)
+            .squishy(s),
         useModifierBasedImplementation = true,
     ) {
         content(hapticsViewModel?.createStateAwareExpandable(it) ?: it)
@@ -393,13 +410,28 @@ fun Modifier.tileCombinedClickable(
     iconOnly: Boolean,
 ): Modifier {
     val longPressLabel = longPressLabel()
-    return combinedClickable(
+    
+    val baseModifier = if (interactionSource != null) {
+        combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
             onClick = onClick,
             onLongClick = onLongClick,
             onClickLabel = accessibilityUiState.clickLabel,
             onLongClickLabel = longPressLabel,
             hapticFeedbackEnabled = !Flags.msdlFeedback(),
         )
+    } else {
+        combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick,
+            onClickLabel = accessibilityUiState.clickLabel,
+            onLongClickLabel = longPressLabel,
+            hapticFeedbackEnabled = !Flags.msdlFeedback(),
+        )
+    }
+    
+    return baseModifier
         .semantics {
             role = accessibilityUiState.accessibilityRole
             if (accessibilityUiState.accessibilityRole == Role.Switch) {
@@ -503,6 +535,22 @@ private object TileDefaults {
 
             else -> unavailableTileColors()
         }
+    }
+}
+
+private fun Modifier.squishy(squishiness: Float): Modifier {
+    return if (squishiness < 0.95f) {
+        graphicsLayer {
+            scaleX = squishiness
+            scaleY = squishiness
+            alpha = if (squishiness < 0.83f) {
+                0f
+            } else {
+                ((squishiness - 0.83f) / (1f - 0.83f)).coerceIn(0f, 1f)
+            }
+        }
+    } else {
+        this
     }
 }
 

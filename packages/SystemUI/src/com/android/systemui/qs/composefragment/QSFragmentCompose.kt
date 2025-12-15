@@ -681,7 +681,7 @@ constructor(
             ) {
                 val BrightnessSlider: @Composable () -> Unit = {
                     Element(ElementKeys.BrightnessSlider, modifier = modifier) {
-                        BrightnessSlider(viewModel, layoutState)
+                        BrightnessSlider(viewModel, layoutState, squishiness)
                     }
                 }
                 val Tiles =
@@ -766,6 +766,9 @@ constructor(
     private fun ContentScope.QuickSettingsElement(modifier: Modifier = Modifier) {
         val qqsPadding = viewModel.qqsHeaderHeight
         val qsExtraPadding = dimensionResource(R.dimen.qs_panel_padding_top)
+        val squishiness by
+            viewModel.quickQuickSettingsViewModel.squishinessViewModel.squishiness
+                .collectAsStateWithLifecycle()
         Column(
             modifier =
                 modifier.collapseExpandSemanticAction(
@@ -811,7 +814,7 @@ constructor(
                         )
                         val BrightnessSlider: @Composable () -> Unit = {
                             Element(ElementKeys.BrightnessSlider, modifier = modifier) {
-                                BrightnessSlider(viewModel, layoutState)
+                                BrightnessSlider(viewModel, layoutState, squishiness)
                             }
                         }
                         val TileGrid =
@@ -909,7 +912,8 @@ constructor(
     private fun BrightnessSlider(
         viewModel: QSFragmentComposeViewModel,
         layoutState: SceneTransitionLayoutState,
-    ) {
+        squishiness: Float,
+    ) {  
         Box(
             Modifier.systemGestureExclusionInShade(
                 enabled = {
@@ -928,19 +932,17 @@ constructor(
         ) {
             AlwaysDarkMode {
                 BrightnessSliderContainer(
-                    viewModel =
-                        viewModel.containerViewModel.brightnessSliderViewModel,
-                    containerColors =
-                        ContainerColors(
-                            Color.Transparent,
-                            ContainerColors.defaultContainerColor,
-                        ),
+                    viewModel = viewModel.containerViewModel.brightnessSliderViewModel,
+                    containerColors = ContainerColors(
+                        Color.Transparent,
+                        ContainerColors.defaultContainerColor,
+                    ),
+                    squishiness = { squishiness },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
     }
-
 
     @Composable
     private fun EditModeElement(modifier: Modifier = Modifier) {

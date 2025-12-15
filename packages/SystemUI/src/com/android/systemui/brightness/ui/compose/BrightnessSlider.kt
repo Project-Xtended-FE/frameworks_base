@@ -78,6 +78,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -138,6 +139,7 @@ fun BrightnessSlider(
     modifier: Modifier = Modifier,
     showToast: () -> Unit = {},
     hapticsViewModelFactory: SliderHapticsViewModel.Factory,
+    squishiness: () -> Float = { 1f },
 ) {
     val context = LocalContext.current
     val cr = context.contentResolver
@@ -220,9 +222,11 @@ fun BrightnessSlider(
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     val EFFECT_CLICK = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
 
+    val s = squishiness()
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = modifier.squishy(s)
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Slider(
@@ -429,6 +433,7 @@ fun BrightnessSliderContainer(
     viewModel: BrightnessSliderViewModel,
     modifier: Modifier = Modifier,
     containerColors: ContainerColors,
+    squishiness: () -> Float = { 1f },
 ) {
     val gamma = viewModel.currentBrightness.value
     if (gamma == BrightnessSliderViewModel.initialValue.value) { // Ignore initial negative value.
@@ -469,6 +474,7 @@ fun BrightnessSliderContainer(
             imageLoader = viewModel::loadImage,
             restriction = restriction,
             onRestrictedClick = viewModel::showPolicyRestrictionDialog,
+            squishiness = squishiness,
             onDrag = {
                 viewModel.setIsDragging(true)
                 dragging = true
@@ -520,6 +526,17 @@ private object Dimensions {
     val SliderBackgroundFrameSize = 8.dp
     val SliderTrackRoundedCorner = 32.dp
     val ThumbSize = 56.dp
+}
+
+private fun Modifier.squishy(squishiness: Float): Modifier = graphicsLayer {
+    scaleX = squishiness
+    scaleY = squishiness
+    alpha = if (squishiness < 0.83f) {
+        0f
+    } else {
+        ((squishiness - 0.83f) / (1f - 0.83f))
+            .coerceIn(0f, 1f)
+    }
 }
 
 @Composable
